@@ -2,6 +2,8 @@
 
 Interactive step-by-step SVG visualization of the Prisma AIRS AI Security data flow.
 
+![Secured Scenario](docs/secured-scenario.png)
+
 ## Features
 
 - **Two scenario modes** — compare unsecured vs. secured AI request paths
