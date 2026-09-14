@@ -2,6 +2,10 @@
 
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
+## Prerequisites
+
+- **Node.js >= 20.12** required (Vite 8 / Rolldown uses `node:util.styleText`, added in 20.12)
+
 ## Build & Dev Commands
 
 - **Dev server:** `npm run dev` (Vite, defaults to port 5173 — check for port conflicts)
@@ -33,6 +37,17 @@ Single-page React 19 + TypeScript app built with Vite 8. Tailwind CSS v4 via the
 
 All node positions, edge connections, step metadata, and color palette are defined as constants at the top of this file — no external data files.
 
+### Duplicate file note
+
+`src/ArchitectureFlowDiagram.tsx` is a near-duplicate of `client/src/components/ArchitectureFlowDiagram.tsx` (missing some comments). The app imports from `client/src/components/` — the `src/` copy is unused.
+
 ## Styling
 
 Tailwind CSS v4 utility classes for layout/controls. SVG elements are styled inline (fill, stroke, opacity, filters). Color palette is defined as constants (`CLR_ORANGE`, `CLR_TEAL`, `CLR_BLUE`, `CLR_RED`, `CLR_PURPLE`, `CLR_YELLOW`) in the diagram component. Do not use vendor-specific prefixes in constant names.
+
+## TypeScript
+
+- Target: ES2023, bundler module resolution
+- Strict unused-local/parameter checks enabled (`noUnusedLocals`, `noUnusedParameters`)
+- `tsconfig.json` uses project references: `tsconfig.app.json` (src) + `tsconfig.node.json` (Vite config)
+- Only `src/` is included in the app tsconfig — `client/` is imported but not in the `include` array (relies on bundler resolution)

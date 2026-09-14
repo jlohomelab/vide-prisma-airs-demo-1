@@ -18,6 +18,10 @@ Interactive step-by-step SVG visualization of the Prisma AIRS AI Security data f
 - Vite 8
 - Tailwind CSS v4
 
+## Prerequisites
+
+- **Node.js >= 20.12** (Vite 8 / Rolldown requires `node:util.styleText`, added in Node 20.12)
+
 ## Getting Started
 
 ```bash
