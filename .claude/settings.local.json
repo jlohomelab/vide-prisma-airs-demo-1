@@ -1,0 +1,19 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(npm create *)",
+      "Read(//private/tmp/**)",
+      "Bash(cp -r /tmp/arch-flow-temp/* /tmp/arch-flow-temp/.* /Users/jalo/claude/vide-react-test-1/)",
+      "Bash(npm install *)",
+      "Bash(npx tsc *)",
+      "Bash(npx vite *)",
+      "Bash(curl -s http://localhost:5173)",
+      "mcp__mcp-gateway__playwright__browser_navigate",
+      "mcp__mcp-gateway__chrome_devtools__new_page",
+      "Bash(curl -s http://localhost:5174)",
+      "Bash(npm run *)",
+      "Bash(git config *)",
+      "Bash(gh auth *)"
+    ]
+  }
+}
