@@ -13,6 +13,11 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 - **Production build:** `npm run build` (runs `tsc -b && vite build`, outputs to `dist/`)
 - **Lint:** `npm run lint` (Oxlint with React and TypeScript plugins)
 - **Preview prod build:** `npm run preview`
+- **Production serve:** `npm start` (runs `vite preview --host 0.0.0.0 --port 4173`; run `npm run build` first)
+
+## Production Deployment
+
+Build then serve: `npm run build && npm start`. Serves on port 4173 bound to all interfaces. Vite's host header validation is disabled (`preview.allowedHosts: true` in `vite.config.ts`) to allow access via FQDN without a reverse proxy.
 
 ## Architecture
 
