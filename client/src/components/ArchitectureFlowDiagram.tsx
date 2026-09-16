@@ -1,4 +1,6 @@
 import { type JSX, useCallback, useEffect, useMemo, useRef, useState } from "react";
+import ChatPanel from "./ChatPanel";
+import RagAdmin from "./RagAdmin";
 
 // ---------------------------------------------------------------------------
 // Types
@@ -659,7 +661,9 @@ export default function ArchitectureFlowDiagram() {
   const svgHeight = secured ? 420 : 380;
 
   return (
-    <div className="min-h-screen bg-[#0D0E12] flex flex-col items-center p-6 pt-[80px] font-[Inter,system-ui,sans-serif]">
+    <div className="min-h-screen bg-[#0D0E12] flex flex-row items-start p-6 pt-[80px] gap-4 font-[Inter,system-ui,sans-serif]">
+      {/* Left: diagram content */}
+      <div className="flex-1 min-w-0 flex flex-col items-center">
       <div className="w-full max-w-[1100px]">
         {/* Header */}
         <div className="mb-6 text-center">
@@ -882,6 +886,16 @@ export default function ArchitectureFlowDiagram() {
           ))}
         </div>
       </div>
+      </div>
+      {/* Right: chat panel — sticky so it stays in view while diagram scrolls */}
+      <div
+        className="w-[360px] shrink-0 sticky top-[80px]"
+        style={{ height: "calc(100vh - 104px)" }}
+      >
+        <ChatPanel />
+      </div>
+      {/* Admin panel — renders its own fixed-position trigger button */}
+      <RagAdmin />
     </div>
   );
 }
