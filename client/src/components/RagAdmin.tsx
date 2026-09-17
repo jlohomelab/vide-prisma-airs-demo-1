@@ -1,5 +1,5 @@
 import { type JSX, useEffect, useState } from "react";
-import { deleteDoc, initRagDocs, loadRagDocs, saveDoc, type RagDoc } from "../utils/rag";
+import { deleteDoc, loadRagDocs, saveDoc, type RagDoc } from "../utils/rag";
 
 const CLR_BLUE = "#4FC3F7";
 const CLR_ORANGE = "#FF6B2B";
@@ -75,6 +75,7 @@ export default function RagAdmin(): JSX.Element {
   const [pwError, setPwError] = useState(false);
 
   const [docs, setDocs] = useState<RagDoc[]>([]);
+  const [loadError, setLoadError] = useState(false);
   const [selectedPath, setSelectedPath] = useState<string | null>(null);
   const [editTitle, setEditTitle] = useState("");
   const [editContent, setEditContent] = useState("");
@@ -93,22 +94,25 @@ export default function RagAdmin(): JSX.Element {
 
   const folders = [...new Set(docs.map((d) => d.folder))].sort();
 
-  function reload() {
-    const loaded = loadRagDocs();
-    setDocs(loaded);
-    // Auto-expand all folders
-    const exp: Record<string, boolean> = {};
-    for (const f of [...new Set(loaded.map((d) => d.folder))]) exp[f] = true;
-    setExpanded(exp);
+  async function reload() {
+    try {
+      const loaded = await loadRagDocs();
+      setDocs(loaded);
+      setLoadError(false);
+      const exp: Record<string, boolean> = {};
+      for (const f of [...new Set(loaded.map((d) => d.folder))]) exp[f] = true;
+      setExpanded(exp);
+    } catch {
+      setLoadError(true);
+    }
   }
 
   useEffect(() => {
-    if (open && authed) reload();
+    if (open && authed) void reload();
   }, [open, authed]);
 
   function handleLogin() {
     if (pwInput === ADMIN_PASSWORD) {
-      initRagDocs();
       setAuthed(true);
       setPwError(false);
     } else {
@@ -134,44 +138,43 @@ export default function RagAdmin(): JSX.Element {
     setDirty(false);
   }
 
-  function handleSave() {
+  async function handleSave() {
     if (!selectedPath) return;
     const folder = selectedPath.split("/")[0];
     const doc: RagDoc = { path: selectedPath, title: editTitle, folder, content: editContent };
-    saveDoc(doc);
-    reload();
+    await saveDoc(doc, ADMIN_PASSWORD);
+    await reload();
     setDirty(false);
   }
 
-  function handleDelete() {
+  async function handleDelete() {
     if (!selectedPath) return;
     if (!confirm(`Delete "${editTitle}"? This cannot be undone.`)) return;
-    deleteDoc(selectedPath);
-    reload();
+    await deleteDoc(selectedPath, ADMIN_PASSWORD);
+    await reload();
     setSelectedPath(null);
     setDirty(false);
   }
 
-  function handleCreateFolder() {
+  async function handleCreateFolder() {
     const slug = slugify(newFolderName.trim());
     if (!slug) return;
-    // Create a placeholder doc so the folder appears
     const path = `${slug}/.keep`;
     const doc: RagDoc = { path, title: ".keep", folder: slug, content: "" };
-    saveDoc(doc);
-    reload();
+    await saveDoc(doc, ADMIN_PASSWORD);
+    await reload();
     setShowNewFolder(false);
     setNewFolderName("");
     setExpanded((e) => ({ ...e, [slug]: true }));
   }
 
-  function handleCreateFile(folder: string) {
+  async function handleCreateFile(folder: string) {
     const slug = slugify(newFileName.trim());
     if (!slug) return;
     const path = `${folder}/${slug}.txt`;
     const doc: RagDoc = { path, title: newFileName.trim(), folder, content: "" };
-    saveDoc(doc);
-    reload();
+    await saveDoc(doc, ADMIN_PASSWORD);
+    await reload();
     setNewFileForFolder(null);
     setNewFileName("");
     selectDoc(path);
@@ -301,6 +304,16 @@ export default function RagAdmin(): JSX.Element {
                   </button>
                 </div>
 
+                {/* Server error banner */}
+                {loadError && (
+                  <div className="px-4 py-2.5 flex items-center gap-2 text-xs shrink-0" style={{ background: "#FF4D6A12", borderBottom: "1px solid #FF4D6A25", color: "#FF4D6A" }}>
+                    <span>⚠</span>
+                    <span>Cannot reach the RAG server. Make sure the app is running with <strong>npm run dev</strong> (not <code>npm run dev:vite</code> alone), then&nbsp;
+                      <button className="underline" onClick={() => void reload()}>retry</button>.
+                    </span>
+                  </div>
+                )}
+
                 {/* Body: two panels */}
                 <div className="flex flex-1 min-h-0">
                   {/* Left: folder tree */}
@@ -352,7 +365,7 @@ export default function RagAdmin(): JSX.Element {
                                     value={newFileName}
                                     onChange={(e) => setNewFileName(e.target.value)}
                                     onKeyDown={(e) => {
-                                      if (e.key === "Enter") handleCreateFile(folder);
+                                      if (e.key === "Enter") void handleCreateFile(folder);
                                       if (e.key === "Escape") { setNewFileForFolder(null); setNewFileName(""); }
                                     }}
                                     placeholder="File name"
@@ -360,7 +373,7 @@ export default function RagAdmin(): JSX.Element {
                                     style={{ background: "#1A1B22", border: `1px solid ${CLR_BLUE}50` }}
                                   />
                                   <button
-                                    onClick={() => handleCreateFile(folder)}
+                                    onClick={() => void handleCreateFile(folder)}
                                     className="text-[10px] px-1.5 py-0.5 rounded"
                                     style={{ background: CLR_BLUE + "30", color: CLR_BLUE }}
                                   >✓</button>
@@ -390,7 +403,7 @@ export default function RagAdmin(): JSX.Element {
                               value={newFolderName}
                               onChange={(e) => setNewFolderName(e.target.value)}
                               onKeyDown={(e) => {
-                                if (e.key === "Enter") handleCreateFolder();
+                                if (e.key === "Enter") void handleCreateFolder();
                                 if (e.key === "Escape") { setShowNewFolder(false); setNewFolderName(""); }
                               }}
                               placeholder="Folder name"
@@ -398,7 +411,7 @@ export default function RagAdmin(): JSX.Element {
                               style={{ background: "#1A1B22", border: `1px solid ${CLR_ORANGE}50` }}
                             />
                             <button
-                              onClick={handleCreateFolder}
+                              onClick={() => void handleCreateFolder()}
                               className="text-[11px] px-2 py-1 rounded"
                               style={{ background: CLR_ORANGE + "30", color: CLR_ORANGE }}
                             >✓</button>
@@ -466,7 +479,7 @@ export default function RagAdmin(): JSX.Element {
                           )}
                           <div className="ml-auto flex gap-2">
                             <button
-                              onClick={handleDelete}
+                              onClick={() => void handleDelete()}
                               className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs border transition-colors"
                               style={{ color: "#FF4D6A", borderColor: "#FF4D6A30" }}
                               onMouseEnter={(e) => { e.currentTarget.style.background = "#FF4D6A10"; }}
@@ -475,7 +488,7 @@ export default function RagAdmin(): JSX.Element {
                               <TrashIcon /> Delete
                             </button>
                             <button
-                              onClick={handleSave}
+                              onClick={() => void handleSave()}
                               disabled={!dirty}
                               className="px-4 py-1.5 rounded-lg text-xs font-semibold transition-opacity disabled:opacity-40"
                               style={{ background: CLR_BLUE, color: "#0D0E12" }}

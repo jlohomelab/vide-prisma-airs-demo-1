@@ -8,16 +8,16 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Build & Dev Commands
 
-- **Dev server:** `npm run dev` (Vite, defaults to port 5173 — check for port conflicts)
+- **Dev server:** `npm run dev` — runs Vite (port 5173) and the Express API server (port 3001) concurrently. Use `npm run dev:vite` or `npm run dev:server` to start either process alone.
 - **Type-check:** `npx tsc --noEmit` (use `tsc -b` for project-reference-aware build)
 - **Production build:** `npm run build` (runs `tsc -b && vite build`, outputs to `dist/`)
 - **Lint:** `npm run lint` (Oxlint with React and TypeScript plugins)
 - **Preview prod build:** `npm run preview`
-- **Production serve:** `npm start` (runs `vite preview --host 0.0.0.0 --port 4173`; run `npm run build` first)
+- **Production serve:** `npm start` — runs `node server.mjs`, which serves the built `dist/` as static files and exposes the RAG API on port 3001 (or `$PORT`). Run `npm run build` first.
 
 ## Production Deployment
 
-Build then serve: `npm run build && npm start`. Serves on port 4173 bound to all interfaces. Vite's host header validation is disabled (`preview.allowedHosts: true` in `vite.config.ts`) to allow access via FQDN without a reverse proxy.
+Build then serve: `npm run build && npm start`. The Express server (`server.mjs`) handles both static-file serving of `dist/` and the `/api` routes, listening on port 3001 (or `$PORT`) bound to all interfaces. `preview.allowedHosts: true` in `vite.config.ts` disables Vite's host header validation for `npm run preview` (not used in production with `npm start`).
 
 ## Architecture
 
@@ -49,32 +49,53 @@ The page uses a two-column flex-row layout:
 
 All node positions, edge connections, step metadata, and color palette are defined as constants at the top of this file — no external data files.
 
-**`client/src/components/ChatPanel.tsx`** — right-side AI chatbot backed by Portkey AI gateway. It owns:
+**`server.mjs`** — Express 5 REST API server for both the RAG knowledge base and LLM configuration. It owns:
 
-- Portkey config (base URL, `x-portkey-api-key`, `x-portkey-provider`, model) stored in `localStorage` under `portkey-chat-config`; configurable via a gear icon modal
-- **RAG gate**: on every send, calls `searchDocs()` from `client/src/utils/rag.ts`; if no relevant documents are found the LLM is never called and the chat shows `"Unable to access internal data."`
-- When context is found, a `system` message with the retrieved document excerpts is prepended to the conversation before the Portkey API call
+- Listens on port 3001 (or `$PORT`), binds to `0.0.0.0`
+- Reads/writes `data/rag.json` and `data/config.json` via synchronous `readFileSync`/`writeFileSync`
+- Routes: `GET /api/rag/docs` (public), `POST /api/rag/docs` (upsert, auth), `DELETE /api/rag/docs` (auth), `GET /api/config` (auth), `POST /api/config` (auth)
+- Auth: `x-admin-password` request header checked by `requireAuth` middleware against hardcoded `"Pal0Alt0"`
+- In production (after build): serves `dist/` as static files with SPA fallback (`index.html` for all unmatched routes)
+- Permissive CORS (`*`) so the Vite dev server on a different port can reach it
+
+**`data/rag.json`** — persistent JSON store for RAG documents. Structure: `{ "docs": [{ path, title, folder, content }] }`. Single source of truth for the knowledge base (replaces the deleted `ragSeed.ts`). Contains 7 seed documents across 3 folders (`hr`, `expense`, `kb`), including a synthetic employee CSV with PII-like data used to demo AIRS security scanning.
+
+**`data/config.json`** — persistent JSON store for LLM configuration. Structure: `{ portkey: { baseUrl, apiKey, provider, model }, direct: { baseUrl, bearerToken, model } }`. Protected by `requireAuth`; never accessible without the admin password. Created on first save; defaults are embedded in `DEFAULT_CHAT_CONFIG` in `server.mjs`.
+
+**`client/src/components/ChatPanel.tsx`** — right-side AI chatbot with dual-mode LLM support. Accepts a `secured: boolean` prop from `ArchitectureFlowDiagram`. It owns:
+
+- **Two LLM paths** switched by the `secured` prop:
+  - `secured=true` → calls Portkey gateway (`POST {baseUrl}/chat/completions` with `x-portkey-api-key` / `x-portkey-provider` headers, `max_tokens: 512`)
+  - `secured=false` → calls the LLM directly (`POST {baseUrl}` with `Authorization: Bearer {token}`, `max_completion_tokens: 13107`)
+- **LLM config stored server-side** in `data/config.json` via `GET/POST /api/config` (requires admin password). Admin password cached in `localStorage` under key `"Pal0Alt0"` (`ADMIN_PW_KEY`); loaded on component mount and used to auto-fetch config.
+- **Gear icon settings modal** — tabbed: "Portkey" tab (4 fields: base URL, API key, provider, model) and "Direct LLM" tab (3 fields: API URL, bearer token, model). Default tab matches current mode. Modal auto-fetches current server config on open when password is stored. Load button triggers manual re-fetch.
+- **RAG gate**: on every send, calls `await loadRagDocs()`; passes result to `searchDocs(text, ragDocs)`; server errors silently fall back to empty doc list. If nothing matches, shows `"Unable to access internal data."` without calling the LLM.
+- Header badge and accent color reflect current mode: blue = Secured (Portkey), orange = Unsecured (Direct LLM)
 
 **`client/src/components/RagAdmin.tsx`** — password-gated admin panel for managing the knowledge base. It owns:
 
-- A `fixed bottom-4 left-4` trigger button that opens a full-screen modal
-- Password authentication (hardcoded; see `ADMIN_PASSWORD` constant)
-- Two-panel layout: folder tree on the left, document editor on the right
-- Full CRUD for documents: create, edit title/content, delete
-- **New Folder** creation — admin can add categories beyond the three defaults (`hr`, `expense`, `kb`); new folders are searched by the chatbot immediately
-- All changes persist to `localStorage` and are picked up by the RAG search on the next chat message
+- A `fixed bottom-4 left-4` trigger button that opens a full-screen modal; password gate resets on every modal open (`authed` reset in `handleClose`)
+- Password authentication (hardcoded `ADMIN_PASSWORD = "Pal0Alt0"`); "Authenticated" badge shown in header after login
+- Two-panel layout: collapsible folder/file tree on the left, document editor on the right
+- Full CRUD for documents: create file within folder, edit title/content (dirty-state tracking with "Unsaved changes" label), delete
+- **New Folder** creation — admin can add categories beyond the three defaults (`hr`, `expense`, `kb`); saves a `.keep` placeholder file via `saveDoc`
+- All changes persist to the server via `saveDoc(doc, ADMIN_PASSWORD)` / `deleteDoc(path, ADMIN_PASSWORD)`; a server-error banner with retry button is shown if `loadRagDocs()` fails
+- No localStorage usage
 
 ### RAG utilities
 
-**`client/src/utils/ragSeed.ts`** — seed documents as TypeScript constants (bundled into the JS, never served as public files). Company: PAN Technologies, domain pan.com. Documents: HR policy, leave policy, expense policy, reimbursement guide, password reset guide, IT helpdesk guide.
+**`client/src/utils/rag.ts`** — HTTP client + search utility. No embedded data, no localStorage. Company: PAN Technologies, domain pan.com.
 
-**`client/src/utils/rag.ts`** — localStorage-backed document store:
-- `initRagDocs()` — seeds localStorage from `RAG_SEED_DOCS` on first run (idempotent)
-- `loadRagDocs()` — reads manifest + content from localStorage
-- `saveDoc(doc)` / `deleteDoc(path)` — called by RagAdmin
-- `searchDocs(query, docs)` — keyword frequency scoring; returns top-3 matching document excerpts as a formatted string, or `null` if nothing matches
+- `loadRagDocs(): Promise<RagDoc[]>` — `GET /api/rag/docs`; throws on non-OK HTTP
+- `saveDoc(doc, adminPassword): Promise<void>` — `POST /api/rag/docs` with `x-admin-password` header
+- `deleteDoc(path, adminPassword): Promise<void>` — `DELETE /api/rag/docs` with `x-admin-password` header
+- `searchDocs(query, docs)` — pure local keyword frequency scoring; strips stop-words and tokens shorter than 3 chars; returns top-3 matching document excerpts as a formatted string, or `null` if nothing matches
 
-localStorage keys: `rag-seeded` (init flag), `rag-manifest` (JSON array), `rag-file-<path>` (content per file).
+`ragSeed.ts` has been deleted. Document data lives in `data/rag.json` on the server.
+
+### Dev proxy
+
+`vite.config.ts` proxies `/api/*` → `http://localhost:3001` so that `fetch("/api/rag/docs")` in the client works from the Vite dev server without CORS issues or hardcoded ports.
 
 ### Duplicate file note
 

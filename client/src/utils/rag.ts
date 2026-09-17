@@ -1,5 +1,3 @@
-import { RAG_SEED_DOCS } from "./ragSeed";
-
 export interface RagDoc {
   path: string;
   title: string;
@@ -7,63 +5,41 @@ export interface RagDoc {
   content: string;
 }
 
-const MANIFEST_KEY = "rag-manifest";
-const FILE_PREFIX = "rag-file-";
-const SEEDED_KEY = "rag-seeded";
+const API_BASE = "/api/rag";
 
-export function initRagDocs(): void {
-  if (localStorage.getItem(SEEDED_KEY)) return;
-  const manifest = RAG_SEED_DOCS.map(({ path, title, folder }) => ({ path, title, folder }));
-  localStorage.setItem(MANIFEST_KEY, JSON.stringify(manifest));
-  for (const doc of RAG_SEED_DOCS) {
-    localStorage.setItem(FILE_PREFIX + doc.path, doc.content);
-  }
-  localStorage.setItem(SEEDED_KEY, "1");
+export async function loadRagDocs(): Promise<RagDoc[]> {
+  const res = await fetch(`${API_BASE}/docs`);
+  if (!res.ok) throw new Error(`Server returned ${res.status}`);
+  return (await res.json()) as RagDoc[];
 }
 
-export function loadRagDocs(): RagDoc[] {
-  try {
-    const raw = localStorage.getItem(MANIFEST_KEY);
-    if (!raw) return [];
-    const manifest = JSON.parse(raw) as Array<{ path: string; title: string; folder: string }>;
-    return manifest.map((entry) => ({
-      ...entry,
-      content: localStorage.getItem(FILE_PREFIX + entry.path) ?? "",
-    }));
-  } catch {
-    return [];
+export async function saveDoc(doc: RagDoc, adminPassword: string): Promise<void> {
+  const res = await fetch(`${API_BASE}/docs`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      "x-admin-password": adminPassword,
+    },
+    body: JSON.stringify(doc),
+  });
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({ error: "Unknown error" })) as { error?: string };
+    throw new Error(err.error ?? `HTTP ${res.status}`);
   }
 }
 
-export function saveDoc(doc: RagDoc): void {
-  try {
-    const raw = localStorage.getItem(MANIFEST_KEY);
-    const manifest: Array<{ path: string; title: string; folder: string }> = raw
-      ? JSON.parse(raw)
-      : [];
-    const idx = manifest.findIndex((m) => m.path === doc.path);
-    if (idx >= 0) {
-      manifest[idx] = { path: doc.path, title: doc.title, folder: doc.folder };
-    } else {
-      manifest.push({ path: doc.path, title: doc.title, folder: doc.folder });
-    }
-    localStorage.setItem(MANIFEST_KEY, JSON.stringify(manifest));
-    localStorage.setItem(FILE_PREFIX + doc.path, doc.content);
-  } catch {
-    // ignore storage errors
-  }
-}
-
-export function deleteDoc(path: string): void {
-  try {
-    const raw = localStorage.getItem(MANIFEST_KEY);
-    if (!raw) return;
-    const manifest = (JSON.parse(raw) as Array<{ path: string; title: string; folder: string }>)
-      .filter((m) => m.path !== path);
-    localStorage.setItem(MANIFEST_KEY, JSON.stringify(manifest));
-    localStorage.removeItem(FILE_PREFIX + path);
-  } catch {
-    // ignore storage errors
+export async function deleteDoc(path: string, adminPassword: string): Promise<void> {
+  const res = await fetch(`${API_BASE}/docs`, {
+    method: "DELETE",
+    headers: {
+      "Content-Type": "application/json",
+      "x-admin-password": adminPassword,
+    },
+    body: JSON.stringify({ path }),
+  });
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({ error: "Unknown error" })) as { error?: string };
+    throw new Error(err.error ?? `HTTP ${res.status}`);
   }
 }
 
@@ -71,7 +47,6 @@ export function deleteDoc(path: string): void {
 export function searchDocs(query: string, docs: RagDoc[]): string | null {
   if (docs.length === 0) return null;
 
-  // Tokenize: lowercase words >= 3 chars, exclude stop words
   const STOP = new Set([
     "the", "and", "for", "are", "was", "were", "has", "have", "had", "with",
     "this", "that", "from", "but", "not", "can", "will", "what", "how",
@@ -88,8 +63,7 @@ export function searchDocs(query: string, docs: RagDoc[]): string | null {
     const text = (doc.title + " " + doc.content).toLowerCase();
     let score = 0;
     for (const term of terms) {
-      const re = new RegExp(term, "g");
-      const hits = text.match(re);
+      const hits = text.match(new RegExp(term, "g"));
       if (hits) score += hits.length;
     }
     return { doc, score };

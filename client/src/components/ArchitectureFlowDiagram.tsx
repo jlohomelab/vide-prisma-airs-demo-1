@@ -892,7 +892,7 @@ export default function ArchitectureFlowDiagram() {
         className="w-[360px] shrink-0 sticky top-[80px]"
         style={{ height: "calc(100vh - 104px)" }}
       >
-        <ChatPanel />
+        <ChatPanel secured={secured} />
       </div>
       {/* Admin panel — renders its own fixed-position trigger button */}
       <RagAdmin />
