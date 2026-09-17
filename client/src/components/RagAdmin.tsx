@@ -5,7 +5,7 @@ const CLR_BLUE = "#4FC3F7";
 const CLR_ORANGE = "#FF6B2B";
 const NODE_BG = "#1E2028";
 const NODE_BORDER = "#2A2D37";
-const ADMIN_PASSWORD = "Pal0Alt0";
+const ADMIN_PASSWORD = import.meta.env.VITE_ADMIN_PASSWORD as string;
 
 // ── Icons ─────────────────────────────────────────────────────────────────────
 

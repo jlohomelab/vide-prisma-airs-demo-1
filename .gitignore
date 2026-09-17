@@ -15,6 +15,9 @@ dist-ssr
 # Runtime data — contains API keys, never commit
 data/config.json
 
+# Environment variables — define locally from .env.example, never commit
+.env
+
 # Editor directories and files
 .vscode/*
 !.vscode/extensions.json

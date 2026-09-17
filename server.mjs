@@ -3,11 +3,19 @@ import { existsSync, readFileSync, writeFileSync } from "fs";
 import { dirname, join } from "path";
 import { fileURLToPath } from "url";
 
+// Load .env if present (built-in since Node 20.12, no extra deps needed)
+try { process.loadEnvFile(); } catch { /* .env not found — rely on system env */ }
+
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const PORT = process.env.PORT || 3001;
 const DATA_FILE = join(__dirname, "data", "rag.json");
 const CONFIG_FILE = join(__dirname, "data", "config.json");
-const ADMIN_PASSWORD = "Pal0Alt0";
+
+const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD;
+if (!ADMIN_PASSWORD) {
+  console.error("ERROR: ADMIN_PASSWORD is not set. Copy .env.example to .env and define it.");
+  process.exit(1);
+}
 
 const DEFAULT_CHAT_CONFIG = {
   portkey: { baseUrl: "https://aigw.portkey.ai/v1", apiKey: "", provider: "@gpt-4-1-mini", model: "gpt-4.1-mini" },

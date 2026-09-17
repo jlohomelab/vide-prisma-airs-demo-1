@@ -6,7 +6,7 @@ const CLR_ORANGE = "#FF9500";
 const NODE_BG = "#1E2028";
 const NODE_BORDER = "#2A2D37";
 
-const ADMIN_PW_KEY = "Pal0Alt0";
+const ADMIN_PW_KEY = "chat-admin-password";
 
 interface Message {
   role: "user" | "assistant";
@@ -151,7 +151,7 @@ export default function ChatPanel({ secured }: { secured: boolean }): JSX.Elemen
   const [chatConfig, setChatConfig] = useState<ChatConfig>(DEFAULT_CONFIG);
   const [draftConfig, setDraftConfig] = useState<ChatConfig>(DEFAULT_CONFIG);
   const [adminPassword, setAdminPassword] = useState<string>(
-    () => localStorage.getItem(ADMIN_PW_KEY) ?? ""
+    () => localStorage.getItem(ADMIN_PW_KEY) ?? (import.meta.env.VITE_ADMIN_PASSWORD as string ?? "")
   );
   const [draftPassword, setDraftPassword] = useState("");
   const [configTab, setConfigTab] = useState<"portkey" | "direct">("portkey");
