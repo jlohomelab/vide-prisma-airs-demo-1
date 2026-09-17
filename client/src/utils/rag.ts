@@ -51,11 +51,13 @@ export function searchDocs(query: string, docs: RagDoc[]): string | null {
     "the", "and", "for", "are", "was", "were", "has", "have", "had", "with",
     "this", "that", "from", "but", "not", "can", "will", "what", "how",
     "when", "who", "where", "which", "its", "our", "your", "their",
+    "of", "in", "to", "do", "be", "as", "at", "by", "an", "so", "up",
+    "me", "my", "we", "us", "he", "or", "no", "go",
   ]);
   const terms = query
     .toLowerCase()
     .split(/\W+/)
-    .filter((t) => t.length >= 3 && !STOP.has(t));
+    .filter((t) => t.length >= 2 && !STOP.has(t));
 
   if (terms.length === 0) return null;
 

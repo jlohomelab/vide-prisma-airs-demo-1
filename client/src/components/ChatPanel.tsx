@@ -241,7 +241,17 @@ export default function ChatPanel({ secured }: { secured: boolean }): JSX.Elemen
     try {
       // RAG gate
       let ragDocs: Awaited<ReturnType<typeof loadRagDocs>> = [];
-      try { ragDocs = await loadRagDocs(); } catch { /* server down → no context */ }
+      let ragFetchFailed = false;
+      try { ragDocs = await loadRagDocs(); } catch { ragFetchFailed = true; }
+
+      if (ragFetchFailed) {
+        setMessages((prev) => [
+          ...prev,
+          { role: "assistant", content: "Knowledge base server is unreachable. Make sure the server is running (`npm run dev`).", error: true },
+        ]);
+        return;
+      }
+
       const context = searchDocs(text, ragDocs);
 
       if (context === null) {
