@@ -89,7 +89,7 @@ All node positions, edge connections, step metadata, and color palette are defin
 - `loadRagDocs(): Promise<RagDoc[]>` — `GET /api/rag/docs`; throws on non-OK HTTP
 - `saveDoc(doc, adminPassword): Promise<void>` — `POST /api/rag/docs` with `x-admin-password` header
 - `deleteDoc(path, adminPassword): Promise<void>` — `DELETE /api/rag/docs` with `x-admin-password` header
-- `searchDocs(query, docs)` — pure local keyword frequency scoring; strips stop-words and tokens shorter than 3 chars; returns top-3 matching document excerpts as a formatted string, or `null` if nothing matches
+- `searchDocs(query, docs)` — pure local keyword frequency scoring; corpus is `folder + title + content` (so folder names like "hr" are searchable); strips stop-words and tokens shorter than 2 chars; for terms ending in "s" also tries the de-pluralised form (e.g. "employees" → matches "employee"); returns top-3 matching document excerpts as a formatted string, or `null` if nothing matches
 
 `ragSeed.ts` has been deleted. Document data lives in `data/rag.json` on the server.
 

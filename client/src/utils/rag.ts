@@ -62,10 +62,15 @@ export function searchDocs(query: string, docs: RagDoc[]): string | null {
   if (terms.length === 0) return null;
 
   const scored = docs.map((doc) => {
-    const text = (doc.title + " " + doc.content).toLowerCase();
+    const text = (doc.folder + " " + doc.title + " " + doc.content).toLowerCase();
     let score = 0;
     for (const term of terms) {
-      const hits = text.match(new RegExp(term, "g"));
+      // Also match the de-pluralised form for terms ending in 's'
+      const pattern =
+        term.length >= 5 && term.endsWith("s")
+          ? `${term}|${term.slice(0, -1)}`
+          : term;
+      const hits = text.match(new RegExp(pattern, "g"));
       if (hits) score += hits.length;
     }
     return { doc, score };
