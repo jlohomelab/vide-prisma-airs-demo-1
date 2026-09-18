@@ -65,8 +65,9 @@ function requireAuth(req, res, next) {
   next();
 }
 
-// GET /api/rag/docs — public read
+// GET /api/rag/docs — public read (no-store so clients always get fresh data)
 app.get("/api/rag/docs", (req, res) => {
+  res.setHeader("Cache-Control", "no-store");
   res.json(loadData().docs);
 });
 

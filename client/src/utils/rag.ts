@@ -8,7 +8,7 @@ export interface RagDoc {
 const API_BASE = "/api/rag";
 
 export async function loadRagDocs(): Promise<RagDoc[]> {
-  const res = await fetch(`${API_BASE}/docs`);
+  const res = await fetch(`${API_BASE}/docs`, { cache: "no-store" });
   if (!res.ok) throw new Error(`Server returned ${res.status}`);
   return (await res.json()) as RagDoc[];
 }
