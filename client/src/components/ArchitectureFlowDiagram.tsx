@@ -1,6 +1,7 @@
 import { type JSX, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import ChatPanel from "./ChatPanel";
 import RagAdmin from "./RagAdmin";
+import { ThemeContext } from "../contexts/ThemeContext";
 
 // ---------------------------------------------------------------------------
 // Types
@@ -525,6 +526,35 @@ function GatewayBadges({
 }
 
 // ---------------------------------------------------------------------------
+// Theme icons
+// ---------------------------------------------------------------------------
+function SunIcon(): JSX.Element {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"
+      strokeLinecap="round" strokeLinejoin="round" width="15" height="15">
+      <circle cx="12" cy="12" r="5" />
+      <line x1="12" y1="1" x2="12" y2="3" />
+      <line x1="12" y1="21" x2="12" y2="23" />
+      <line x1="4.22" y1="4.22" x2="5.64" y2="5.64" />
+      <line x1="18.36" y1="18.36" x2="19.78" y2="19.78" />
+      <line x1="1" y1="12" x2="3" y2="12" />
+      <line x1="21" y1="12" x2="23" y2="12" />
+      <line x1="4.22" y1="19.78" x2="5.64" y2="18.36" />
+      <line x1="18.36" y1="5.64" x2="19.78" y2="4.22" />
+    </svg>
+  );
+}
+
+function MoonIcon(): JSX.Element {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"
+      strokeLinecap="round" strokeLinejoin="round" width="15" height="15">
+      <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z" />
+    </svg>
+  );
+}
+
+// ---------------------------------------------------------------------------
 // Step progress dots
 // ---------------------------------------------------------------------------
 function StepProgress({
@@ -558,6 +588,7 @@ function StepProgress({
 // Main component
 // ---------------------------------------------------------------------------
 export default function ArchitectureFlowDiagram() {
+  const [darkMode, setDarkMode] = useState(true);
   const [secured, setSecured] = useState(false);
   const [currentStep, setCurrentStep] = useState(0);
   const [svgReady, setSvgReady] = useState(false);
@@ -660,17 +691,35 @@ export default function ArchitectureFlowDiagram() {
 
   const svgHeight = secured ? 420 : 380;
 
+  const th = {
+    appBg:          darkMode ? "#0D0E12"  : "#F0F4F8",
+    titleColor:     darkMode ? "#FFFFFF"  : "#111827",
+    subtitleColor:  darkMode ? "#6B7280"  : "#6B7280",
+    controlBg:      darkMode ? "#1A1B22"  : "#FFFFFF",
+    controlBgHover: darkMode ? "#22232C"  : "#F1F5F9",
+    controlBorder:  darkMode ? "#2A2D37"  : "#D1D5DB",
+    controlText:    darkMode ? "#9CA3AF"  : "#6B7280",
+    dividerBg:      darkMode ? "#2A2D37"  : "#D1D5DB",
+    stepDescText:   darkMode ? "#9CA3AF"  : "#6B7280",
+    legendText:     darkMode ? "#6B7280"  : "#6B7280",
+    toggleOffset:   darkMode ? "#0D0E12"  : "#F0F4F8",
+  };
+
   return (
-    <div className="min-h-screen bg-[#0D0E12] flex flex-row items-start p-6 pt-[80px] gap-4 font-[Inter,system-ui,sans-serif]">
+    <ThemeContext.Provider value={{ darkMode, toggleTheme: () => setDarkMode((d) => !d) }}>
+    <div
+      className="min-h-screen flex flex-row items-start p-6 pt-[80px] gap-4 font-[Inter,system-ui,sans-serif]"
+      style={{ backgroundColor: th.appBg }}
+    >
       {/* Left: diagram content */}
       <div className="flex-1 min-w-0 flex flex-col items-center">
       <div className="w-full max-w-[1100px]">
         {/* Header */}
         <div className="mb-6 text-center">
-          <h1 className="text-3xl font-bold text-white mb-1 tracking-tight">
+          <h1 className="text-3xl font-bold mb-1 tracking-tight" style={{ color: th.titleColor }}>
             Prisma AIRS AI Security Architecture
           </h1>
-          <p className="text-gray-500 text-sm">
+          <p className="text-sm" style={{ color: th.subtitleColor }}>
             Interactive step-by-step data flow visualization
           </p>
         </div>
@@ -685,7 +734,7 @@ export default function ArchitectureFlowDiagram() {
           </span>
           <button
             onClick={handleToggle}
-            className="relative w-14 h-7 rounded-full transition-colors duration-300 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-[#0D0E12]"
+            className="relative w-14 h-7 rounded-full transition-colors duration-300 focus:outline-none focus:ring-2 focus:ring-offset-2"
             style={{ backgroundColor: secured ? CLR_BLUE : "#3B3E4A" }}
             aria-label={`Switch to ${secured ? "unsecured" : "secured"} flow`}
           >
@@ -718,7 +767,8 @@ export default function ArchitectureFlowDiagram() {
           </button>
           <button
             onClick={resetStep}
-            className="px-4 py-1.5 text-xs font-semibold rounded-lg border border-[#2A2D37] text-gray-400 bg-[#1A1B22] hover:bg-[#22232C] transition-all duration-200"
+            className="px-4 py-1.5 text-xs font-semibold rounded-lg border transition-all duration-200"
+            style={{ borderColor: th.controlBorder, color: th.controlText, background: th.controlBg }}
           >
             Reset
           </button>
@@ -735,20 +785,20 @@ export default function ArchitectureFlowDiagram() {
             Next Step
           </button>
 
-          <div className="w-px h-5 bg-[#2A2D37] mx-1" />
+          <div className="w-px h-5 mx-1" style={{ backgroundColor: th.dividerBg }} />
 
           <button
             onClick={toggleAutoplay}
             className="px-4 py-1.5 text-xs font-semibold rounded-lg border transition-all duration-200 flex items-center gap-1.5"
             style={{
-              borderColor: autoplay ? "#22C55E80" : "#2A2D37",
-              color: autoplay ? "#22C55E" : "#9CA3AF",
-              background: autoplay ? "#22C55E14" : "#1A1B22",
+              borderColor: autoplay ? "#22C55E80" : th.controlBorder,
+              color: autoplay ? "#22C55E" : th.controlText,
+              background: autoplay ? "#22C55E14" : th.controlBg,
             }}
           >
             <span
               className="inline-block w-1.5 h-1.5 rounded-full transition-colors duration-200"
-              style={{ backgroundColor: autoplay ? "#22C55E" : "#6B7280" }}
+              style={{ backgroundColor: autoplay ? "#22C55E" : th.controlText }}
             />
             {autoplay ? "Auto-playing" : "Auto-play"}
           </button>
@@ -864,7 +914,7 @@ export default function ArchitectureFlowDiagram() {
             >
               {step.title}
             </div>
-            <div className="text-xs text-gray-400 leading-relaxed">
+            <div className="text-xs leading-relaxed" style={{ color: th.stepDescText }}>
               {step.description}
             </div>
           </div>
@@ -878,7 +928,7 @@ export default function ArchitectureFlowDiagram() {
                 className="w-2 h-2 rounded-full"
                 style={{ backgroundColor: node.color }}
               />
-              <span className="text-[11px] text-gray-500">
+              <span className="text-[11px]" style={{ color: th.legendText }}>
                 {node.label}
                 {node.sublabel ? ` (${node.sublabel})` : ""}
               </span>
@@ -894,8 +944,30 @@ export default function ArchitectureFlowDiagram() {
       >
         <ChatPanel secured={secured} />
       </div>
+      {/* Theme toggle — fixed bottom-left, to the left of the Admin button */}
+      <button
+        onClick={() => setDarkMode((d) => !d)}
+        className="fixed bottom-4 left-4 z-40 flex items-center gap-2 px-3 py-2 rounded-xl border text-xs font-semibold transition-all shadow-lg"
+        style={{
+          background: darkMode ? "#0F1015" : "#FFFFFF",
+          borderColor: th.controlBorder,
+          color: th.controlText,
+        }}
+        onMouseEnter={(e) => {
+          e.currentTarget.style.borderColor = CLR_TEAL + "80";
+          e.currentTarget.style.color = CLR_TEAL;
+        }}
+        onMouseLeave={(e) => {
+          e.currentTarget.style.borderColor = th.controlBorder;
+          e.currentTarget.style.color = th.controlText;
+        }}
+        title={darkMode ? "Switch to light mode" : "Switch to dark mode"}
+      >
+        {darkMode ? <SunIcon /> : <MoonIcon />}
+      </button>
       {/* Admin panel — renders its own fixed-position trigger button */}
       <RagAdmin />
     </div>
+    </ThemeContext.Provider>
   );
 }

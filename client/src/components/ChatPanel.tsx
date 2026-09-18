@@ -1,12 +1,61 @@
 import { type JSX, useEffect, useRef, useState } from "react";
 import { loadRagDocs, searchDocs } from "../utils/rag";
+import { useTheme } from "../contexts/ThemeContext";
 
 const CLR_BLUE = "#4FC3F7";
 const CLR_ORANGE = "#FF9500";
-const NODE_BG = "#1E2028";
-const NODE_BORDER = "#2A2D37";
 
 const ADMIN_PW_KEY = "chat-admin-password";
+
+function buildTheme(darkMode: boolean) {
+  return darkMode
+    ? {
+        panelBg:      "#13141A",
+        panelBorder:  "#1E2028",
+        headerBg:     "#0F1015",
+        cardBg:       "#1E2028",
+        cardBorder:   "#2A2D37",
+        inputBg:      "#0D0E12",
+        inputBg2:     "#1A1B22",
+        modalBg:      "#13141A",
+        tabsBg:       "#0D0E12",
+        textPrimary:  "#FFFFFF",
+        textSecondary:"#9CA3AF",
+        textMuted:    "#6B7280",
+        textHint:     "#374151",
+        msgUserText:  "#E5E7EB",
+        msgAssistText:"#D1D5DB",
+        labelText:    "#9CA3AF",
+        cancelText:   "#9CA3AF",
+        codeBg:       "#0D0E12",
+        codeText:     "#6B7280",
+        codeLabel:    "#4B5563",
+        inputAreaBg:  "#0F1015",
+      }
+    : {
+        panelBg:      "#FFFFFF",
+        panelBorder:  "#E2E8F0",
+        headerBg:     "#F5F7FA",
+        cardBg:       "#F1F5F9",
+        cardBorder:   "#D1D5DB",
+        inputBg:      "#F5F7FA",
+        inputBg2:     "#FFFFFF",
+        modalBg:      "#FFFFFF",
+        tabsBg:       "#F1F5F9",
+        textPrimary:  "#111827",
+        textSecondary:"#4B5563",
+        textMuted:    "#9CA3AF",
+        textHint:     "#9CA3AF",
+        msgUserText:  "#1F2937",
+        msgAssistText:"#374151",
+        labelText:    "#6B7280",
+        cancelText:   "#6B7280",
+        codeBg:       "#F1F5F9",
+        codeText:     "#6B7280",
+        codeLabel:    "#4B5563",
+        inputAreaBg:  "#FFFFFF",
+      };
+}
 
 interface Message {
   role: "user" | "assistant";
@@ -123,9 +172,11 @@ function ConfigField({
   placeholder: string;
   type?: string;
 }): JSX.Element {
+  const { darkMode } = useTheme();
+  const th = buildTheme(darkMode);
   return (
     <div>
-      <label className="block text-xs font-medium mb-1.5" style={{ color: "#9CA3AF" }}>
+      <label className="block text-xs font-medium mb-1.5" style={{ color: th.labelText }}>
         {label}
       </label>
       <input
@@ -133,10 +184,10 @@ function ConfigField({
         value={value}
         onChange={(e) => onChange(e.target.value)}
         placeholder={placeholder}
-        className="w-full rounded-lg px-3 py-2 text-sm text-white placeholder-gray-600 focus:outline-none transition-colors"
-        style={{ background: "#0D0E12", border: `1px solid ${NODE_BORDER}` }}
+        className="w-full rounded-lg px-3 py-2 text-sm placeholder-gray-500 focus:outline-none transition-colors"
+        style={{ background: th.inputBg, border: `1px solid ${th.cardBorder}`, color: th.textPrimary }}
         onFocus={(e) => { e.target.style.borderColor = CLR_BLUE; }}
-        onBlur={(e) => { e.target.style.borderColor = NODE_BORDER; }}
+        onBlur={(e) => { e.target.style.borderColor = th.cardBorder; }}
       />
     </div>
   );
@@ -219,6 +270,9 @@ export default function ChatPanel({ secured }: { secured: boolean }): JSX.Elemen
       setConfigLoading(false);
     }
   };
+
+  const { darkMode } = useTheme();
+  const th = buildTheme(darkMode);
 
   const accentColor = secured ? CLR_BLUE : CLR_ORANGE;
   const modeLabel = secured ? "Secured" : "Unsecured";
@@ -347,18 +401,18 @@ export default function ChatPanel({ secured }: { secured: boolean }): JSX.Elemen
         >
           <div
             className="w-full max-w-md rounded-2xl border p-6 shadow-2xl"
-            style={{ background: "#13141A", borderColor: NODE_BORDER }}
+            style={{ background: th.modalBg, borderColor: th.cardBorder }}
             onClick={(e) => e.stopPropagation()}
           >
             {/* Modal header */}
             <div className="flex items-center gap-2 mb-5">
               <span style={{ color: accentColor }}><GearIcon /></span>
-              <h2 className="text-white font-bold text-base">Chat Settings</h2>
+              <h2 className="font-bold text-base" style={{ color: th.textPrimary }}>Chat Settings</h2>
             </div>
 
             {/* Admin password row */}
             <div className="mb-5">
-              <label className="flex items-center gap-1.5 text-xs font-medium mb-1.5" style={{ color: "#9CA3AF" }}>
+              <label className="flex items-center gap-1.5 text-xs font-medium mb-1.5" style={{ color: th.labelText }}>
                 <LockIcon /> Admin Password
               </label>
               <div className="flex gap-2">
@@ -367,16 +421,16 @@ export default function ChatPanel({ secured }: { secured: boolean }): JSX.Elemen
                   value={draftPassword}
                   onChange={(e) => setDraftPassword(e.target.value)}
                   placeholder="Required to load / save"
-                  className="flex-1 rounded-lg px-3 py-2 text-sm text-white placeholder-gray-600 focus:outline-none transition-colors"
-                  style={{ background: "#0D0E12", border: `1px solid ${NODE_BORDER}` }}
+                  className="flex-1 rounded-lg px-3 py-2 text-sm placeholder-gray-500 focus:outline-none transition-colors"
+                  style={{ background: th.inputBg, border: `1px solid ${th.cardBorder}`, color: th.textPrimary }}
                   onFocus={(e) => { e.target.style.borderColor = CLR_BLUE; }}
-                  onBlur={(e) => { e.target.style.borderColor = NODE_BORDER; }}
+                  onBlur={(e) => { e.target.style.borderColor = th.cardBorder; }}
                 />
                 <button
                   onClick={() => void loadConfigInModal(draftPassword)}
                   disabled={configLoading || !draftPassword}
                   className="px-3 py-2 text-xs rounded-lg border transition-colors disabled:opacity-40"
-                  style={{ color: CLR_BLUE, borderColor: NODE_BORDER }}
+                  style={{ color: CLR_BLUE, borderColor: th.cardBorder }}
                 >
                   {configLoading ? "…" : "Load"}
                 </button>
@@ -387,7 +441,7 @@ export default function ChatPanel({ secured }: { secured: boolean }): JSX.Elemen
             </div>
 
             {/* Tabs */}
-            <div className="flex gap-1 mb-4 p-1 rounded-lg" style={{ background: "#0D0E12" }}>
+            <div className="flex gap-1 mb-4 p-1 rounded-lg" style={{ background: th.tabsBg }}>
               {(["portkey", "direct"] as const).map((tab) => (
                 <button
                   key={tab}
@@ -398,7 +452,7 @@ export default function ChatPanel({ secured }: { secured: boolean }): JSX.Elemen
                       ? { background: tab === "portkey" ? CLR_BLUE + "22" : CLR_ORANGE + "22",
                           color: tab === "portkey" ? CLR_BLUE : CLR_ORANGE,
                           border: `1px solid ${tab === "portkey" ? CLR_BLUE + "40" : CLR_ORANGE + "40"}` }
-                      : { color: "#6B7280", border: "1px solid transparent" }
+                      : { color: th.textMuted, border: "1px solid transparent" }
                   }
                 >
                   {tab === "portkey" ? "Portkey" : "Direct LLM"}
@@ -434,8 +488,8 @@ export default function ChatPanel({ secured }: { secured: boolean }): JSX.Elemen
                   onChange={(v) => setDraftConfig((p) => ({ ...p, portkey: { ...p.portkey, model: v } }))}
                   placeholder="gpt-4.1-mini"
                 />
-                <div className="rounded-lg px-3 py-2.5 text-xs font-mono" style={{ background: "#0D0E12", color: "#6B7280" }}>
-                  <span style={{ color: "#4B5563" }}>POST </span>
+                <div className="rounded-lg px-3 py-2.5 text-xs font-mono" style={{ background: th.codeBg, color: th.codeText }}>
+                  <span style={{ color: th.codeLabel }}>POST </span>
                   <span style={{ color: CLR_BLUE + "CC" }}>{draftConfig.portkey.baseUrl || "https://aigw.portkey.ai/v1"}/chat/completions</span>
                 </div>
               </div>
@@ -463,8 +517,8 @@ export default function ChatPanel({ secured }: { secured: boolean }): JSX.Elemen
                   onChange={(v) => setDraftConfig((p) => ({ ...p, direct: { ...p.direct, model: v } }))}
                   placeholder="gpt-4.1-mini"
                 />
-                <div className="rounded-lg px-3 py-2.5 text-xs font-mono" style={{ background: "#0D0E12", color: "#6B7280" }}>
-                  <span style={{ color: "#4B5563" }}>POST </span>
+                <div className="rounded-lg px-3 py-2.5 text-xs font-mono" style={{ background: th.codeBg, color: th.codeText }}>
+                  <span style={{ color: th.codeLabel }}>POST </span>
                   <span style={{ color: CLR_ORANGE + "CC" }}>{draftConfig.direct.baseUrl || "https://…/chat/completions"}</span>
                 </div>
               </div>
@@ -477,8 +531,8 @@ export default function ChatPanel({ secured }: { secured: boolean }): JSX.Elemen
             <div className="flex gap-3 mt-5 justify-end">
               <button
                 onClick={() => setShowConfig(false)}
-                className="px-4 py-2 text-sm rounded-lg border transition-colors hover:bg-[#1A1B22]"
-                style={{ color: "#9CA3AF", borderColor: NODE_BORDER }}
+                className="px-4 py-2 text-sm rounded-lg border transition-colors"
+                style={{ color: th.cancelText, borderColor: th.cardBorder }}
               >
                 Cancel
               </button>
@@ -498,15 +552,15 @@ export default function ChatPanel({ secured }: { secured: boolean }): JSX.Elemen
       {/* Chat panel */}
       <div
         className="flex flex-col h-full rounded-2xl border shadow-2xl overflow-hidden"
-        style={{ background: "#13141A", borderColor: NODE_BG }}
+        style={{ background: th.panelBg, borderColor: th.panelBorder }}
       >
         {/* Header */}
         <div
           className="px-4 py-3 border-b flex items-center gap-2 shrink-0"
-          style={{ borderColor: NODE_BORDER, background: "#0F1015" }}
+          style={{ borderColor: th.cardBorder, background: th.headerBg }}
         >
           <div className="w-2 h-2 rounded-full shrink-0" style={{ background: accentColor }} />
-          <span className="text-sm font-semibold text-white">AI Assistant</span>
+          <span className="text-sm font-semibold" style={{ color: th.textPrimary }}>AI Assistant</span>
           <span
             className="ml-1 text-[10px] px-2 py-0.5 rounded-full"
             style={{ background: accentColor + "18", color: accentColor, border: `1px solid ${accentColor}30` }}
@@ -515,7 +569,7 @@ export default function ChatPanel({ secured }: { secured: boolean }): JSX.Elemen
           </span>
           <span
             className="text-[10px] px-2 py-0.5 rounded-full truncate"
-            style={{ background: NODE_BG, color: accentColor, maxWidth: "110px" }}
+            style={{ background: th.cardBg, color: accentColor, maxWidth: "110px" }}
             title={modelLabel}
           >
             {modelLabel}
@@ -523,9 +577,9 @@ export default function ChatPanel({ secured }: { secured: boolean }): JSX.Elemen
           <button
             onClick={openConfig}
             className="ml-auto p-1.5 rounded-lg transition-colors"
-            style={{ color: "#4B5563" }}
-            onMouseEnter={(e) => { (e.currentTarget as HTMLButtonElement).style.color = accentColor; (e.currentTarget as HTMLButtonElement).style.background = NODE_BG; }}
-            onMouseLeave={(e) => { (e.currentTarget as HTMLButtonElement).style.color = "#4B5563"; (e.currentTarget as HTMLButtonElement).style.background = "transparent"; }}
+            style={{ color: th.textSecondary }}
+            onMouseEnter={(e) => { (e.currentTarget as HTMLButtonElement).style.color = accentColor; (e.currentTarget as HTMLButtonElement).style.background = th.cardBg; }}
+            onMouseLeave={(e) => { (e.currentTarget as HTMLButtonElement).style.color = th.textSecondary; (e.currentTarget as HTMLButtonElement).style.background = "transparent"; }}
             title="Configure LLM settings"
             aria-label="Configure LLM settings"
           >
@@ -548,8 +602,8 @@ export default function ChatPanel({ secured }: { secured: boolean }): JSX.Elemen
                 >
                   ✦
                 </div>
-                <p className="text-sm font-medium" style={{ color: "#6B7280" }}>Ask about PAN policies</p>
-                <p className="text-xs mt-0.5" style={{ color: "#374151" }}>HR · Expenses · IT Knowledge Base</p>
+                <p className="text-sm font-medium" style={{ color: th.textMuted }}>Ask about PAN policies</p>
+                <p className="text-xs mt-0.5" style={{ color: th.textSecondary }}>HR · Expenses · IT Knowledge Base</p>
               </div>
             </div>
           )}
@@ -566,7 +620,7 @@ export default function ChatPanel({ secured }: { secured: boolean }): JSX.Elemen
                     ? {
                         background: accentColor + "18",
                         border: `1px solid ${accentColor}30`,
-                        color: "#E5E7EB",
+                        color: th.msgUserText,
                       }
                     : msg.error
                     ? {
@@ -575,9 +629,9 @@ export default function ChatPanel({ secured }: { secured: boolean }): JSX.Elemen
                         color: "#FF4D6A",
                       }
                     : {
-                        background: NODE_BG,
-                        border: `1px solid ${NODE_BORDER}`,
-                        color: "#D1D5DB",
+                        background: th.cardBg,
+                        border: `1px solid ${th.cardBorder}`,
+                        color: th.msgAssistText,
                       }
                 }
               >
@@ -590,7 +644,7 @@ export default function ChatPanel({ secured }: { secured: boolean }): JSX.Elemen
             <div className="flex justify-start">
               <div
                 className="rounded-xl px-4 py-3 border"
-                style={{ background: NODE_BG, borderColor: NODE_BORDER }}
+                style={{ background: th.cardBg, borderColor: th.cardBorder }}
               >
                 <span className="flex gap-1 items-center">
                   {[0, 1, 2].map((i) => (
@@ -614,7 +668,7 @@ export default function ChatPanel({ secured }: { secured: boolean }): JSX.Elemen
         {/* Input area */}
         <div
           className="p-3 border-t shrink-0"
-          style={{ borderColor: NODE_BORDER, background: "#0F1015" }}
+          style={{ borderColor: th.cardBorder, background: th.inputAreaBg }}
         >
           <div className="flex gap-2 items-end">
             <textarea
@@ -624,16 +678,17 @@ export default function ChatPanel({ secured }: { secured: boolean }): JSX.Elemen
               onKeyDown={handleKeyDown}
               placeholder="Ask about HR, expenses, IT…"
               rows={1}
-              className="flex-1 rounded-lg px-3 py-2 text-sm text-white placeholder-gray-600 resize-none focus:outline-none transition-colors"
+              className="flex-1 rounded-lg px-3 py-2 text-sm placeholder-gray-400 resize-none focus:outline-none transition-colors"
               style={{
-                background: "#1A1B22",
-                border: `1px solid ${NODE_BORDER}`,
+                background: th.inputBg2,
+                border: `1px solid ${th.cardBorder}`,
+                color: th.textPrimary,
                 minHeight: "38px",
                 maxHeight: "120px",
                 lineHeight: "1.5",
               }}
               onFocus={(e) => { e.target.style.borderColor = accentColor; }}
-              onBlur={(e) => { e.target.style.borderColor = NODE_BORDER; }}
+              onBlur={(e) => { e.target.style.borderColor = th.cardBorder; }}
             />
             <button
               onClick={() => void sendMessage()}
@@ -645,7 +700,7 @@ export default function ChatPanel({ secured }: { secured: boolean }): JSX.Elemen
               <SendIcon />
             </button>
           </div>
-          <p className="text-[10px] mt-1.5" style={{ color: "#374151" }}>
+          <p className="text-[10px] mt-1.5" style={{ color: th.textHint }}>
             Enter to send · Shift+Enter for new line
           </p>
         </div>

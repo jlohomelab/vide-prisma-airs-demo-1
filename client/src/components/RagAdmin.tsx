@@ -1,11 +1,60 @@
 import { type JSX, useEffect, useState } from "react";
 import { deleteDoc, loadRagDocs, saveDoc, type RagDoc } from "../utils/rag";
+import { useTheme } from "../contexts/ThemeContext";
 
 const CLR_BLUE = "#4FC3F7";
 const CLR_ORANGE = "#FF6B2B";
 const NODE_BG = "#1E2028";
 const NODE_BORDER = "#2A2D37";
 const ADMIN_PASSWORD = import.meta.env.VITE_ADMIN_PASSWORD as string;
+
+function buildAdminTheme(darkMode: boolean) {
+  return darkMode
+    ? {
+        modalBg:      "#0F1015",
+        modalBorder:  NODE_BORDER,
+        headerBg:     "#13141A",
+        cardBg:       NODE_BG,
+        cardBorder:   NODE_BORDER,
+        inputBg:      "#0D0E12",
+        textPrimary:  "#FFFFFF",
+        textSecondary:"#9CA3AF",
+        textMuted:    "#6B7280",
+        rowHoverBg:   "#22232C",
+        paneBg:       "#13141A",
+        paneBorder:   NODE_BORDER,
+        btnBg:        "#1A1B22",
+        btnBorder:    NODE_BORDER,
+        btnText:      "#9CA3AF",
+        saveBtnBg:    CLR_BLUE + "22",
+        unsavedColor: "#F59E0B",
+        errorBg:      "#FF4D6A0D",
+        errorBorder:  "#FF4D6A30",
+        divider:      NODE_BORDER,
+      }
+    : {
+        modalBg:      "#FFFFFF",
+        modalBorder:  "#D1D5DB",
+        headerBg:     "#F5F7FA",
+        cardBg:       "#F1F5F9",
+        cardBorder:   "#D1D5DB",
+        inputBg:      "#FFFFFF",
+        textPrimary:  "#111827",
+        textSecondary:"#4B5563",
+        textMuted:    "#9CA3AF",
+        rowHoverBg:   "#E2E8F0",
+        paneBg:       "#FFFFFF",
+        paneBorder:   "#D1D5DB",
+        btnBg:        "#FFFFFF",
+        btnBorder:    "#D1D5DB",
+        btnText:      "#6B7280",
+        saveBtnBg:    CLR_BLUE + "15",
+        unsavedColor: "#D97706",
+        errorBg:      "#FEF2F2",
+        errorBorder:  "#FECACA",
+        divider:      "#E2E8F0",
+      };
+}
 
 // ── Icons ─────────────────────────────────────────────────────────────────────
 
@@ -69,6 +118,8 @@ function slugify(name: string): string {
 // ── Main component ────────────────────────────────────────────────────────────
 
 export default function RagAdmin(): JSX.Element {
+  const { darkMode } = useTheme();
+  const th = buildAdminTheme(darkMode);
   const [open, setOpen] = useState(false);
   const [authed, setAuthed] = useState(false);
   const [pwInput, setPwInput] = useState("");
@@ -181,9 +232,9 @@ export default function RagAdmin(): JSX.Element {
   }
 
   const inputBase = {
-    background: "#0D0E12",
-    border: `1px solid ${NODE_BORDER}`,
-    color: "white",
+    background: th.inputBg,
+    border: `1px solid ${th.cardBorder}`,
+    color: th.textPrimary,
   } as const;
 
   // ── Render ──────────────────────────────────────────────────────────────────
@@ -193,19 +244,19 @@ export default function RagAdmin(): JSX.Element {
       {/* Trigger button — fixed bottom-left */}
       <button
         onClick={() => setOpen(true)}
-        className="fixed bottom-4 left-4 z-40 flex items-center gap-2 px-3 py-2 rounded-xl border text-xs font-semibold transition-all shadow-lg"
+        className="fixed bottom-4 left-16 z-40 flex items-center gap-2 px-3 py-2 rounded-xl border text-xs font-semibold transition-all shadow-lg"
         style={{
-          background: "#0F1015",
-          borderColor: NODE_BORDER,
-          color: "#6B7280",
+          background: th.headerBg,
+          borderColor: th.cardBorder,
+          color: th.textMuted,
         }}
         onMouseEnter={(e) => {
           e.currentTarget.style.borderColor = CLR_ORANGE + "80";
           e.currentTarget.style.color = CLR_ORANGE;
         }}
         onMouseLeave={(e) => {
-          e.currentTarget.style.borderColor = NODE_BORDER;
-          e.currentTarget.style.color = "#6B7280";
+          e.currentTarget.style.borderColor = th.cardBorder;
+          e.currentTarget.style.color = th.textMuted;
         }}
         title="Open Knowledge Base Admin"
       >
@@ -224,8 +275,8 @@ export default function RagAdmin(): JSX.Element {
             style={{
               width: "min(920px, 95vw)",
               height: "min(640px, 90vh)",
-              background: "#13141A",
-              borderColor: NODE_BORDER,
+              background: th.modalBg,
+              borderColor: th.modalBorder,
             }}
           >
             {/* ── Password gate ── */}
@@ -237,8 +288,8 @@ export default function RagAdmin(): JSX.Element {
                 >
                   <LockIcon />
                 </div>
-                <h2 className="text-white font-bold text-lg mb-1">Knowledge Base Admin</h2>
-                <p className="text-xs mb-6" style={{ color: "#6B7280" }}>
+                <h2 className="font-bold text-lg mb-1" style={{ color: th.textPrimary }}>Knowledge Base Admin</h2>
+                <p className="text-xs mb-6" style={{ color: th.textMuted }}>
                   Enter admin password to manage documents
                 </p>
                 <div className="w-full max-w-xs flex flex-col gap-3">
@@ -249,13 +300,13 @@ export default function RagAdmin(): JSX.Element {
                     onKeyDown={(e) => e.key === "Enter" && handleLogin()}
                     placeholder="Password"
                     autoFocus
-                    className="w-full rounded-lg px-4 py-2.5 text-sm text-white placeholder-gray-600 focus:outline-none transition-colors"
+                    className="w-full rounded-lg px-4 py-2.5 text-sm placeholder-gray-500 focus:outline-none transition-colors"
                     style={{
                       ...inputBase,
-                      borderColor: pwError ? "#FF4D6A" : NODE_BORDER,
+                      borderColor: pwError ? "#FF4D6A" : th.cardBorder,
                     }}
                     onFocus={(e) => { if (!pwError) e.target.style.borderColor = CLR_BLUE; }}
-                    onBlur={(e) => { if (!pwError) e.target.style.borderColor = NODE_BORDER; }}
+                    onBlur={(e) => { if (!pwError) e.target.style.borderColor = th.cardBorder; }}
                   />
                   {pwError && (
                     <p className="text-xs text-center" style={{ color: "#FF4D6A" }}>
@@ -272,7 +323,7 @@ export default function RagAdmin(): JSX.Element {
                   <button
                     onClick={handleClose}
                     className="w-full py-2 rounded-lg text-xs transition-colors"
-                    style={{ color: "#6B7280" }}
+                    style={{ color: th.textMuted }}
                   >
                     Cancel
                   </button>
@@ -284,9 +335,9 @@ export default function RagAdmin(): JSX.Element {
                 {/* Header */}
                 <div
                   className="flex items-center px-5 py-3 border-b shrink-0"
-                  style={{ borderColor: NODE_BORDER, background: "#0F1015" }}
+                  style={{ borderColor: th.cardBorder, background: th.headerBg }}
                 >
-                  <span className="text-sm font-bold text-white">Knowledge Base Admin</span>
+                  <span className="text-sm font-bold" style={{ color: th.textPrimary }}>Knowledge Base Admin</span>
                   <span
                     className="ml-3 text-[10px] px-2 py-0.5 rounded-full"
                     style={{ background: CLR_ORANGE + "18", color: CLR_ORANGE }}
@@ -296,9 +347,9 @@ export default function RagAdmin(): JSX.Element {
                   <button
                     onClick={handleClose}
                     className="ml-auto p-1.5 rounded-lg transition-colors"
-                    style={{ color: "#6B7280" }}
-                    onMouseEnter={(e) => { e.currentTarget.style.color = "white"; e.currentTarget.style.background = NODE_BG; }}
-                    onMouseLeave={(e) => { e.currentTarget.style.color = "#6B7280"; e.currentTarget.style.background = "transparent"; }}
+                    style={{ color: th.textMuted }}
+                    onMouseEnter={(e) => { e.currentTarget.style.color = th.textPrimary; e.currentTarget.style.background = th.cardBg; }}
+                    onMouseLeave={(e) => { e.currentTarget.style.color = th.textMuted; e.currentTarget.style.background = "transparent"; }}
                   >
                     <CloseIcon />
                   </button>
@@ -319,7 +370,7 @@ export default function RagAdmin(): JSX.Element {
                   {/* Left: folder tree */}
                   <div
                     className="w-[220px] shrink-0 border-r flex flex-col overflow-y-auto"
-                    style={{ borderColor: NODE_BORDER, background: "#0F1015" }}
+                    style={{ borderColor: th.cardBorder, background: th.headerBg }}
                   >
                     <div className="p-3 flex-1">
                       {folders.map((folder) => (
@@ -345,12 +396,12 @@ export default function RagAdmin(): JSX.Element {
                                     key={d.path}
                                     className="w-full flex items-center gap-2 px-2 py-1 rounded-lg text-left text-[11px] transition-colors truncate"
                                     style={{
-                                      color: selectedPath === d.path ? "white" : "#9CA3AF",
-                                      background: selectedPath === d.path ? NODE_BG : "transparent",
+                                      color: selectedPath === d.path ? th.textPrimary : th.textSecondary,
+                                      background: selectedPath === d.path ? th.cardBg : "transparent",
                                     }}
                                     onClick={() => selectDoc(d.path)}
-                                    onMouseEnter={(e) => { if (selectedPath !== d.path) e.currentTarget.style.color = "white"; }}
-                                    onMouseLeave={(e) => { if (selectedPath !== d.path) e.currentTarget.style.color = "#9CA3AF"; }}
+                                    onMouseEnter={(e) => { if (selectedPath !== d.path) e.currentTarget.style.color = th.textPrimary; }}
+                                    onMouseLeave={(e) => { if (selectedPath !== d.path) e.currentTarget.style.color = th.textSecondary; }}
                                   >
                                     <span style={{ opacity: 0.6, flexShrink: 0 }}><FileIcon /></span>
                                     <span className="truncate">{d.title}</span>
@@ -369,8 +420,8 @@ export default function RagAdmin(): JSX.Element {
                                       if (e.key === "Escape") { setNewFileForFolder(null); setNewFileName(""); }
                                     }}
                                     placeholder="File name"
-                                    className="flex-1 rounded px-2 py-0.5 text-[11px] text-white placeholder-gray-600 focus:outline-none min-w-0"
-                                    style={{ background: "#1A1B22", border: `1px solid ${CLR_BLUE}50` }}
+                                    className="flex-1 rounded px-2 py-0.5 text-[11px] placeholder-gray-500 focus:outline-none min-w-0"
+                                    style={{ background: th.inputBg, border: `1px solid ${CLR_BLUE}50`, color: th.textPrimary }}
                                   />
                                   <button
                                     onClick={() => void handleCreateFile(folder)}
@@ -381,9 +432,9 @@ export default function RagAdmin(): JSX.Element {
                               ) : (
                                 <button
                                   className="w-full flex items-center gap-1.5 px-2 py-1 text-[11px] rounded transition-colors mt-0.5"
-                                  style={{ color: "#4B5563" }}
+                                  style={{ color: th.textSecondary }}
                                   onMouseEnter={(e) => { e.currentTarget.style.color = CLR_BLUE; }}
-                                  onMouseLeave={(e) => { e.currentTarget.style.color = "#4B5563"; }}
+                                  onMouseLeave={(e) => { e.currentTarget.style.color = th.textSecondary; }}
                                   onClick={() => { setNewFileForFolder(folder); setNewFileName(""); }}
                                 >
                                   <span>＋</span> New file
@@ -395,7 +446,7 @@ export default function RagAdmin(): JSX.Element {
                       ))}
 
                       {/* New folder */}
-                      <div className="mt-3 border-t pt-3" style={{ borderColor: NODE_BORDER }}>
+                      <div className="mt-3 border-t pt-3" style={{ borderColor: th.cardBorder }}>
                         {showNewFolder ? (
                           <div className="flex gap-1">
                             <input
@@ -407,8 +458,8 @@ export default function RagAdmin(): JSX.Element {
                                 if (e.key === "Escape") { setShowNewFolder(false); setNewFolderName(""); }
                               }}
                               placeholder="Folder name"
-                              className="flex-1 rounded px-2 py-1 text-xs text-white placeholder-gray-600 focus:outline-none min-w-0"
-                              style={{ background: "#1A1B22", border: `1px solid ${CLR_ORANGE}50` }}
+                              className="flex-1 rounded px-2 py-1 text-xs placeholder-gray-500 focus:outline-none min-w-0"
+                              style={{ background: th.inputBg, border: `1px solid ${CLR_ORANGE}50`, color: th.textPrimary }}
                             />
                             <button
                               onClick={() => void handleCreateFolder()}
@@ -419,9 +470,9 @@ export default function RagAdmin(): JSX.Element {
                         ) : (
                           <button
                             className="w-full flex items-center gap-1.5 px-2 py-1.5 rounded-lg text-xs transition-colors"
-                            style={{ color: "#4B5563" }}
+                            style={{ color: th.textSecondary }}
                             onMouseEnter={(e) => { e.currentTarget.style.color = CLR_ORANGE; e.currentTarget.style.background = CLR_ORANGE + "10"; }}
-                            onMouseLeave={(e) => { e.currentTarget.style.color = "#4B5563"; e.currentTarget.style.background = "transparent"; }}
+                            onMouseLeave={(e) => { e.currentTarget.style.color = th.textSecondary; e.currentTarget.style.background = "transparent"; }}
                             onClick={() => { setShowNewFolder(true); setNewFolderName(""); }}
                           >
                             <FolderIcon /> ＋ New Folder
@@ -437,45 +488,45 @@ export default function RagAdmin(): JSX.Element {
                       <>
                         {/* Title */}
                         <div className="mb-3">
-                          <label className="block text-xs font-medium mb-1.5" style={{ color: "#9CA3AF" }}>
+                          <label className="block text-xs font-medium mb-1.5" style={{ color: th.textSecondary }}>
                             Document Title
                           </label>
                           <input
                             type="text"
                             value={editTitle}
                             onChange={(e) => { setEditTitle(e.target.value); setDirty(true); }}
-                            className="w-full rounded-lg px-3 py-2 text-sm text-white focus:outline-none transition-colors"
+                            className="w-full rounded-lg px-3 py-2 text-sm focus:outline-none transition-colors"
                             style={inputBase}
                             onFocus={(e) => { e.target.style.borderColor = CLR_BLUE; }}
-                            onBlur={(e) => { e.target.style.borderColor = NODE_BORDER; }}
+                            onBlur={(e) => { e.target.style.borderColor = th.cardBorder; }}
                           />
                         </div>
 
                         {/* Path (read-only) */}
-                        <div className="mb-3 text-[10px]" style={{ color: "#4B5563" }}>
-                          Path: <span style={{ color: "#6B7280" }}>{selectedPath}</span>
+                        <div className="mb-3 text-[10px]" style={{ color: th.textSecondary }}>
+                          Path: <span style={{ color: th.textMuted }}>{selectedPath}</span>
                         </div>
 
                         {/* Content */}
                         <div className="flex-1 flex flex-col min-h-0">
-                          <label className="block text-xs font-medium mb-1.5" style={{ color: "#9CA3AF" }}>
+                          <label className="block text-xs font-medium mb-1.5" style={{ color: th.textSecondary }}>
                             Content
                           </label>
                           <textarea
                             value={editContent}
                             onChange={(e) => { setEditContent(e.target.value); setDirty(true); }}
-                            className="flex-1 rounded-lg px-3 py-2 text-sm text-white placeholder-gray-600 resize-none focus:outline-none transition-colors font-mono"
+                            className="flex-1 rounded-lg px-3 py-2 text-sm placeholder-gray-500 resize-none focus:outline-none transition-colors font-mono"
                             style={{ ...inputBase, lineHeight: "1.6", minHeight: 0 }}
                             onFocus={(e) => { e.target.style.borderColor = CLR_BLUE; }}
-                            onBlur={(e) => { e.target.style.borderColor = NODE_BORDER; }}
+                            onBlur={(e) => { e.target.style.borderColor = th.cardBorder; }}
                             placeholder="Document content…"
                           />
                         </div>
 
                         {/* Actions */}
-                        <div className="flex items-center gap-3 mt-4 pt-3 border-t shrink-0" style={{ borderColor: NODE_BORDER }}>
+                        <div className="flex items-center gap-3 mt-4 pt-3 border-t shrink-0" style={{ borderColor: th.cardBorder }}>
                           {dirty && (
-                            <span className="text-[10px]" style={{ color: "#6B7280" }}>Unsaved changes</span>
+                            <span className="text-[10px]" style={{ color: th.unsavedColor }}>Unsaved changes</span>
                           )}
                           <div className="ml-auto flex gap-2">
                             <button
@@ -507,8 +558,8 @@ export default function RagAdmin(): JSX.Element {
                           >
                             <FileIcon />
                           </div>
-                          <p className="text-sm" style={{ color: "#6B7280" }}>Select a document to edit</p>
-                          <p className="text-xs mt-1" style={{ color: "#374151" }}>or create a new file in a folder</p>
+                          <p className="text-sm" style={{ color: th.textMuted }}>Select a document to edit</p>
+                          <p className="text-xs mt-1" style={{ color: th.textSecondary }}>or create a new file in a folder</p>
                         </div>
                       </div>
                     )}
