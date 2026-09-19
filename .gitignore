@@ -19,6 +19,9 @@ data/users.json
 # Environment variables — define locally from .env.example, never commit
 .env
 
+#exclude GitHub workflows and actions from being tracked
+.github/
+
 # Claude Code local settings — contains machine-specific paths and permissions
 .claude/
 
