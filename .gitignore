@@ -22,6 +22,9 @@ data/users.json
 # GitHub Actions workflows — deployment config, keep local only
 .github/
 
+# Claude Code local settings — contains machine-specific paths and permissions
+.claude/
+
 # Editor directories and files
 .vscode/*
 !.vscode/extensions.json
