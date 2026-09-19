@@ -1,7 +1,7 @@
 import { type JSX, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import ChatPanel from "./ChatPanel";
 import RagAdmin from "./RagAdmin";
-import { ThemeContext } from "../contexts/ThemeContext";
+import { ThemeContext, useTheme } from "../contexts/ThemeContext";
 
 // ---------------------------------------------------------------------------
 // Types
@@ -44,8 +44,6 @@ const CLR_BLUE = "#4FC3F7";
 const CLR_RED = "#FF4D6A";
 const CLR_PURPLE = "#B388FF";
 const CLR_YELLOW = "#FFD54F";
-const NODE_BG = "#1E2028";
-const NODE_BORDER = "#2A2D37";
 const DIM = 0.7;
 
 // ---------------------------------------------------------------------------
@@ -338,6 +336,11 @@ function FlowNode({
   active: boolean;
   onClick?: () => void;
 }) {
+  const { darkMode } = useTheme();
+  const nodeBg      = darkMode ? "#1E2028" : "#FFFFFF";
+  const nodeBorder  = darkMode ? "#2A2D37" : "#E2E8F0";
+  const nodeText    = darkMode ? "#FFFFFF"  : "#1F2937";
+  const nodeSubText = darkMode ? "#9CA3AF"  : "#6B7280";
   const icon = ICONS[node.icon];
   const nodeColor = active && node.activeColor ? node.activeColor : node.color;
   const opacity = active ? 1 : DIM;
@@ -368,8 +371,8 @@ function FlowNode({
         width={node.width}
         height={node.height}
         rx="12"
-        fill={NODE_BG}
-        stroke={NODE_BORDER}
+        fill={nodeBg}
+        stroke={nodeBorder}
         strokeWidth="1.5"
         filter={`url(#${filterId})`}
       />
@@ -394,7 +397,7 @@ function FlowNode({
         x={node.x + node.width / 2}
         y={node.y + node.height - (node.sublabel ? 18 : 12)}
         textAnchor="middle"
-        fill="white"
+        fill={nodeText}
         fontSize="11"
         fontWeight="600"
         fontFamily="Inter, system-ui, sans-serif"
@@ -406,7 +409,7 @@ function FlowNode({
           x={node.x + node.width / 2}
           y={node.y + node.height - 6}
           textAnchor="middle"
-          fill="#9CA3AF"
+          fill={nodeSubText}
           fontSize="9.5"
           fontFamily="Inter, system-ui, sans-serif"
         >
@@ -703,6 +706,8 @@ export default function ArchitectureFlowDiagram() {
     stepDescText:   darkMode ? "#9CA3AF"  : "#6B7280",
     legendText:     darkMode ? "#6B7280"  : "#6B7280",
     toggleOffset:   darkMode ? "#0D0E12"  : "#F0F4F8",
+    diagramBg:      darkMode ? "#13141A"  : "#F5F7FA",
+    diagramBorder:  darkMode ? "#1E2028"  : "#CBD5E1",
   };
 
   return (
@@ -806,8 +811,10 @@ export default function ArchitectureFlowDiagram() {
 
         {/* SVG diagram */}
         <div
-          className="rounded-2xl border border-[#1E2028] bg-[#13141A] p-4 shadow-2xl overflow-hidden"
+          className="rounded-2xl border p-4 shadow-2xl overflow-hidden"
           style={{
+            background: th.diagramBg,
+            borderColor: th.diagramBorder,
             boxShadow: secured
               ? `0 0 80px ${CLR_BLUE}10, 0 0 30px ${CLR_BLUE}08`
               : `0 0 80px ${CLR_RED}10, 0 0 30px ${CLR_RED}08`,
