@@ -23,6 +23,19 @@ jobs:
         with:
           node-version: '24.x'
 
+      - name: Create .env from secrets
+        run: |
+          cat > .env << 'EOF'
+          ADMIN_USERNAME=${{ secrets.ADMIN_USERNAME }}
+          ADMIN_PASSWORD=${{ secrets.ADMIN_PASSWORD }}
+          VITE_PORTKEY_BASE_URL=${{ secrets.VITE_PORTKEY_BASE_URL }}
+          VITE_PORTKEY_PROVIDER=${{ secrets.VITE_PORTKEY_PROVIDER }}
+          VITE_PORTKEY_MODEL=${{ secrets.VITE_PORTKEY_MODEL }}
+          VITE_PORTKEY_SCM_REPORT_URL=${{ secrets.VITE_PORTKEY_SCM_REPORT_URL }}
+          VITE_DIRECT_BASE_URL=${{ secrets.VITE_DIRECT_BASE_URL }}
+          VITE_DIRECT_MODEL=${{ secrets.VITE_DIRECT_MODEL }}
+          EOF
+
       - name: Install dependencies and build
         run: |
           npm ci
