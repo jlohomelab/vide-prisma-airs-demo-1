@@ -22,6 +22,12 @@ jobs:
         uses: actions/setup-node@v3
         with:
           node-version: '24.x'
+      # Copy a .env file and update default username and password
+      - name: Define default admin password
+        run: |
+          cp ./.env.example ./.env
+          sed -i '' 's/^ADMIN_USERNAME=.*/ADMIN_USERNAME=admin/' .env
+          sed -i '' 's/^ADMIN_PASSWORD=.*/ADMIN_PASSWORD=admin/' .env
 
       - name: npm install, build, and test
         run: |
