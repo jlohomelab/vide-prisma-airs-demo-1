@@ -108,10 +108,10 @@ const ICONS: Record<string, (c: string) => JSX.Element> = {
 // Scenario data
 // ---------------------------------------------------------------------------
 const unsecuredNodes: NodeDef[] = [
-  { id: "endpoint", label: "Endpoint", sublabel: "Attacker", x: 80, y: 200, width: 140, height: 70, color: CLR_RED, icon: "endpoint" },
-  { id: "frontend", label: "Frontend", sublabel: "App UI", x: 340, y: 200, width: 140, height: 70, color: CLR_TEAL, icon: "frontend" },
-  { id: "backend", label: "Backend", sublabel: "RAG", x: 600, y: 200, width: 140, height: 70, color: CLR_PURPLE, icon: "backend" },
-  { id: "llm", label: "LLM", sublabel: "Single-Model", x: 860, y: 200, width: 140, height: 70, color: "#FFFFFF", activeColor: CLR_RED, icon: "llm" },
+  { id: "endpoint", label: "Endpoint", sublabel: "Attacker", x: 80, y: 180, width: 140, height: 80, color: CLR_RED, icon: "endpoint" },
+  { id: "frontend", label: "Frontend", sublabel: "App UI", x: 340, y: 180, width: 140, height: 80, color: CLR_TEAL, icon: "frontend" },
+  { id: "backend", label: "Backend", sublabel: "RAG", x: 600, y: 180, width: 140, height: 80, color: CLR_PURPLE, icon: "backend" },
+  { id: "llm", label: "LLM", sublabel: "Single-Model", x: 860, y: 180, width: 140, height: 80, color: "#FFFFFF", activeColor: CLR_RED, icon: "llm" },
 ];
 
 const unsecuredEdges: EdgeDef[] = [
@@ -147,13 +147,13 @@ const unsecuredSteps: StepDef[] = [
 ];
 
 const securedNodes: NodeDef[] = [
-  { id: "endpoint", label: "Endpoint", sublabel: "Attacker", x: 60, y: 220, width: 120, height: 70, color: CLR_RED, icon: "endpoint" },
-  { id: "frontend", label: "Frontend", sublabel: "App UI", x: 240, y: 220, width: 120, height: 70, color: CLR_TEAL, icon: "frontend" },
-  { id: "backend", label: "Backend", sublabel: "RAG", x: 420, y: 220, width: 120, height: 70, color: CLR_PURPLE, icon: "backend" },
-  { id: "gateway", label: "AIRS AI", sublabel: "Gateway", x: 600, y: 220, width: 130, height: 70, color: CLR_BLUE, icon: "gateway" },
-  { id: "scm", label: "Strata Cloud", sublabel: "Manager", x: 540, y: 68, width: 130, height: 60, color: CLR_YELLOW, icon: "scm" },
-  { id: "intercept", label: "AIRS API", sublabel: "DLP / Threats", x: 720, y: 68, width: 140, height: 60, color: CLR_BLUE, icon: "intercept" },
-  { id: "llm", label: "LLM", sublabel: "Multi-Model", x: 900, y: 220, width: 130, height: 70, color: "#FFFFFF", icon: "llm" },
+  { id: "endpoint", label: "Endpoint", sublabel: "Attacker", x: 60, y: 220, width: 110, height: 80, color: CLR_RED, icon: "endpoint" },
+  { id: "frontend", label: "Frontend", sublabel: "App UI", x: 240, y: 220, width: 110, height: 80, color: CLR_TEAL, icon: "frontend" },
+  { id: "backend", label: "Backend", sublabel: "RAG", x: 420, y: 220, width: 110, height: 80, color: CLR_PURPLE, icon: "backend" },
+  { id: "gateway", label: "AI Gateway", sublabel: "Prisma AIRS", x: 600, y: 220, width: 150, height: 80, color: CLR_BLUE, icon: "gateway" },
+  { id: "scm", label: "Strata Cloud Manager", sublabel: "Policy Management", x: 540, y: 68, width: 140, height: 80, color: CLR_YELLOW, icon: "scm" },
+  { id: "intercept", label: "Security Guardrails", sublabel: "Prisma AIRS API", x: 720, y: 68, width: 140, height: 80, color: CLR_BLUE, icon: "intercept" },
+  { id: "llm", label: "LLM", sublabel: "Multi-Model", x: 850, y: 220, width: 110, height: 80, color: CLR_BLUE, icon: "llm" },
 ];
 
 const securedEdges: EdgeDef[] = [
@@ -344,7 +344,7 @@ function FlowNode({
   const icon = ICONS[node.icon];
   const nodeColor = active && node.activeColor ? node.activeColor : node.color;
   const opacity = active ? 1 : DIM;
-  const glowOpacity = active ? "0.35" : "0";
+  const glowOpacity = active ? "1" : "0";
   const borderOpacity = active ? 0.7 : 0.15;
   const filterId = `glow-${node.id}-${active ? "on" : "off"}`;
 
@@ -355,7 +355,7 @@ function FlowNode({
     >
       <defs>
         <filter id={filterId}>
-          <feGaussianBlur stdDeviation={active ? "4" : "2"} result="blur" />
+          <feGaussianBlur stdDeviation={active ? "4" : "1"} result="blur" />
           <feFlood floodColor={nodeColor} floodOpacity={glowOpacity} result="color" />
           <feComposite in="color" in2="blur" operator="in" result="shadow" />
           <feMerge>
@@ -395,10 +395,10 @@ function FlowNode({
 
       <text
         x={node.x + node.width / 2}
-        y={node.y + node.height - (node.sublabel ? 18 : 12)}
+        y={node.y + node.height - (node.sublabel ? 30 : 12)}
         textAnchor="middle"
         fill={nodeText}
-        fontSize="11"
+        fontSize="12"
         fontWeight="600"
         fontFamily="Inter, system-ui, sans-serif"
       >
@@ -407,10 +407,10 @@ function FlowNode({
       {node.sublabel && (
         <text
           x={node.x + node.width / 2}
-          y={node.y + node.height - 6}
+          y={node.y + node.height - 15}
           textAnchor="middle"
           fill={nodeSubText}
-          fontSize="9.5"
+          fontSize="12"
           fontFamily="Inter, system-ui, sans-serif"
         >
           {node.sublabel}
@@ -430,7 +430,7 @@ function RiskBadges({ node }: { node: NodeDef; risks: string[] }) {
   return (
     <g>
       {risks.map((label, i) => {
-        const w = label.length * 6.5 + 20;
+        const w = label.length * 6.5 + 30;
         const y = baseY + i * 26;
         return (
           <g key={label}>
@@ -458,7 +458,7 @@ function RiskBadges({ node }: { node: NodeDef; risks: string[] }) {
               x={cx - w / 2 + 8}
               y={y + 13.5}
               fill={CLR_RED}
-              fontSize="9.5"
+              fontSize="12"
               fontWeight="600"
               fontFamily="Inter, system-ui, sans-serif"
             >
@@ -515,7 +515,7 @@ function GatewayBadges({
               y={y + 12.5}
               textAnchor="middle"
               fill={CLR_BLUE}
-              fontSize="9"
+              fontSize="12"
               fontWeight="600"
               fontFamily="Inter, system-ui, sans-serif"
             >
@@ -593,6 +593,7 @@ function StepProgress({
 export default function ArchitectureFlowDiagram() {
   const [darkMode, setDarkMode] = useState(true);
   const [secured, setSecured] = useState(false);
+  const [rawResponse, setRawResponse] = useState<unknown>(null);
   const [currentStep, setCurrentStep] = useState(0);
   const [svgReady, setSvgReady] = useState(false);
   const [autoplay, setAutoplay] = useState(true);
@@ -710,10 +711,19 @@ export default function ArchitectureFlowDiagram() {
     diagramBorder:  darkMode ? "#1E2028"  : "#CBD5E1",
   };
 
+  const rp = {
+    bg:           darkMode ? "#13141A" : "#FFFFFF",
+    border:       darkMode ? "#1E2028" : "#E2E8F0",
+    headerBg:     darkMode ? "#0F1015" : "#F5F7FA",
+    headerBorder: darkMode ? "#2A2D37" : "#D1D5DB",
+    text:         darkMode ? "#9CA3AF" : "#4B5563",
+    muted:        darkMode ? "#6B7280" : "#9CA3AF",
+  };
+
   return (
     <ThemeContext.Provider value={{ darkMode, toggleTheme: () => setDarkMode((d) => !d) }}>
     <div
-      className="min-h-screen flex flex-row items-start p-6 pt-[80px] gap-4 font-[Inter,system-ui,sans-serif]"
+      className="min-h-screen flex flex-row items-start p-6 pt-[30px] gap-4 font-[Inter,system-ui,sans-serif]"
       style={{ backgroundColor: th.appBg }}
     >
       {/* Left: diagram content */}
@@ -722,7 +732,7 @@ export default function ArchitectureFlowDiagram() {
         {/* Header */}
         <div className="mb-6 text-center">
           <h1 className="font-bold mb-1 tracking-tight" style={{ color: th.titleColor, fontSize: "1.5625rem" }}>
-            Prisma AIRS AI Security Architecture
+            Prisma AIRS AI Gateway Security Architecture
           </h1>
           <p className="text-sm" style={{ color: th.subtitleColor }}>
             Interactive step-by-step data flow visualization
@@ -944,12 +954,57 @@ export default function ArchitectureFlowDiagram() {
         </div>
       </div>
       </div>
-      {/* Right: chat panel — sticky so it stays in view while diagram scrolls */}
+      {/* Right: chat panel + API response box */}
       <div
-        className="w-[360px] shrink-0 sticky top-[80px]"
-        style={{ height: "calc(100vh - 104px)" }}
+        className="w-[420px] shrink-0 sticky top-[35px] flex flex-col gap-2"
+        style={{ height: "calc(100vh - 80px)" }}
       >
-        <ChatPanel secured={secured} />
+        {/* Chat panel — 70% */}
+        <div style={{ flex: 7, minHeight: 0, overflow: "hidden" }}>
+          <ChatPanel secured={secured} onRawResponse={setRawResponse} />
+        </div>
+
+        {/* API Response box — 30% */}
+        <div
+          className="rounded-2xl border overflow-hidden flex flex-col"
+          style={{ flex: 3, minHeight: 0, background: rp.bg, borderColor: rp.border }}
+        >
+          {/* Header */}
+          <div
+            className="px-3 py-2 border-b shrink-0 flex items-center gap-2"
+            style={{ background: rp.headerBg, borderColor: rp.headerBorder }}
+          >
+            <div className="w-1.5 h-1.5 rounded-full shrink-0"
+              style={{ background: secured ? CLR_BLUE : CLR_ORANGE }} />
+            <span className="text-xs font-semibold" style={{ color: rp.text }}>
+              API Response
+            </span>
+            {!!rawResponse && (
+              <span className="ml-auto text-[10px] px-1.5 py-0.5 rounded"
+                style={{ background: CLR_TEAL + "18", color: CLR_TEAL }}>
+                JSON
+              </span>
+            )}
+          </div>
+
+          {/* Body */}
+          <div className="flex-1 overflow-y-auto p-3 min-h-0">
+            {rawResponse ? (
+              <pre
+                className="text-[10px] font-mono leading-relaxed whitespace-pre-wrap break-all"
+                style={{ color: rp.text }}
+              >
+                {JSON.stringify(rawResponse, null, 2)}
+              </pre>
+            ) : (
+              <div className="flex h-full items-center justify-center">
+                <p className="text-xs text-center select-none" style={{ color: rp.muted }}>
+                  Response will appear here<br />after sending a message
+                </p>
+              </div>
+            )}
+          </div>
+        </div>
       </div>
       {/* Theme toggle — fixed bottom-left, to the left of the Admin button */}
       <button

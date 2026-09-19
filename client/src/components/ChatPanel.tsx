@@ -193,7 +193,10 @@ function ConfigField({
   );
 }
 
-export default function ChatPanel({ secured }: { secured: boolean }): JSX.Element {
+export default function ChatPanel({ secured, onRawResponse }: {
+  secured: boolean;
+  onRawResponse?: (data: unknown) => void;
+}): JSX.Element {
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState("");
   const [isLoading, setIsLoading] = useState(false);
@@ -281,6 +284,7 @@ export default function ChatPanel({ secured }: { secured: boolean }): JSX.Elemen
   const sendMessage = async () => {
     const text = input.trim();
     if (!text || isLoading) return;
+    onRawResponse?.(null);
 
     const userMsg: Message = { role: "user", content: text };
     const history = [...messages, userMsg];
@@ -368,9 +372,11 @@ export default function ChatPanel({ secured }: { secured: boolean }): JSX.Elemen
 
       const data = await res.json() as { choices?: Array<{ message?: { content?: string } }> };
       const content = data.choices?.[0]?.message?.content ?? "(no response)";
+      onRawResponse?.(data);
       setMessages((prev) => [...prev, { role: "assistant", content }]);
     } catch (err) {
       const msg = err instanceof Error ? err.message : String(err);
+      onRawResponse?.({ error: msg });
       setMessages((prev) => [...prev, { role: "assistant", content: msg, error: true }]);
     } finally {
       setIsLoading(false);
