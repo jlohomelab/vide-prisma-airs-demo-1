@@ -721,7 +721,7 @@ export default function ArchitectureFlowDiagram() {
       <div className="w-full max-w-[1100px]">
         {/* Header */}
         <div className="mb-6 text-center">
-          <h1 className="text-3xl font-bold mb-1 tracking-tight" style={{ color: th.titleColor }}>
+          <h1 className="font-bold mb-1 tracking-tight" style={{ color: th.titleColor, fontSize: "1.5625rem" }}>
             Prisma AIRS AI Security Architecture
           </h1>
           <p className="text-sm" style={{ color: th.subtitleColor }}>
