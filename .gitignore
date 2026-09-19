@@ -12,8 +12,9 @@ dist
 dist-ssr
 *.local
 
-# Runtime data — contains API keys, never commit
+# Runtime data — contains API keys / hashed credentials, never commit
 data/config.json
+data/users.json
 
 # Environment variables — define locally from .env.example, never commit
 .env

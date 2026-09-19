@@ -1,6 +1,6 @@
 import { type JSX, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import ChatPanel from "./ChatPanel";
-import RagAdmin from "./RagAdmin";
+import AdminPage from "./AdminPage";
 import { ThemeContext, useTheme } from "../contexts/ThemeContext";
 
 // ---------------------------------------------------------------------------
@@ -44,7 +44,7 @@ const CLR_BLUE = "#4FC3F7";
 const CLR_RED = "#FF4D6A";
 const CLR_PURPLE = "#B388FF";
 const CLR_YELLOW = "#FFD54F";
-const DIM = 0.7;
+const DIM = 1;
 
 // ---------------------------------------------------------------------------
 // Icons
@@ -108,10 +108,10 @@ const ICONS: Record<string, (c: string) => JSX.Element> = {
 // Scenario data
 // ---------------------------------------------------------------------------
 const unsecuredNodes: NodeDef[] = [
-  { id: "endpoint", label: "Endpoint", sublabel: "Attacker", x: 80, y: 180, width: 140, height: 80, color: CLR_RED, icon: "endpoint" },
-  { id: "frontend", label: "Frontend", sublabel: "App UI", x: 340, y: 180, width: 140, height: 80, color: CLR_TEAL, icon: "frontend" },
-  { id: "backend", label: "Backend", sublabel: "RAG", x: 600, y: 180, width: 140, height: 80, color: CLR_PURPLE, icon: "backend" },
-  { id: "llm", label: "LLM", sublabel: "Single-Model", x: 860, y: 180, width: 140, height: 80, color: "#FFFFFF", activeColor: CLR_RED, icon: "llm" },
+  { id: "endpoint", label: "Endpoint", sublabel: "Attacker", x: 80, y: 150, width: 140, height: 80, color: CLR_RED, icon: "endpoint" },
+  { id: "frontend", label: "Frontend", sublabel: "App UI", x: 340, y: 150, width: 140, height: 80, color: CLR_TEAL, icon: "frontend" },
+  { id: "backend", label: "Backend", sublabel: "RAG", x: 600, y: 150, width: 140, height: 80, color: CLR_PURPLE, icon: "backend" },
+  { id: "llm", label: "LLM", sublabel: "Single-Model", x: 860, y: 150, width: 140, height: 80, color: "#FFFFFF", activeColor: CLR_RED, icon: "llm" },
 ];
 
 const unsecuredEdges: EdgeDef[] = [
@@ -122,11 +122,18 @@ const unsecuredEdges: EdgeDef[] = [
 
 const unsecuredSteps: StepDef[] = [
   {
+    activeNodes: ["endpoint"],
+    activeEdges: ["endpoint"],
+    title: "Step 0 — Attacker Endpoint",
+    description:
+      "Pontentially malicious user sends a prompt request through the application endpoint to the frontend interface.",
+  },
+  {
     activeNodes: ["endpoint", "frontend"],
     activeEdges: ["endpoint-frontend"],
-    title: "Step 1 — User Request",
+    title: "Step 1 — Sending Request",
     description:
-      "End user sends a prompt request through the application endpoint to the frontend interface.",
+      "Attacker sends a prompt request through the application endpoint to the frontend interface.",
   },
   {
     activeNodes: ["frontend", "backend"],
@@ -141,19 +148,19 @@ const unsecuredSteps: StepDef[] = [
     title: "Step 3 — Unprotected LLM Access",
     description:
       "Backend sends the prompt directly to the LLM with no security inspection — leaving the system exposed to critical AI threats.",
-    risks: ["Prompt Injection", "Sensitive Data Leakage", "Model Evasion"],
+    risks: ["Prompt Injection", "Model Evasion","Sensitive Data Leakage", ],
     holdMs: 5000,
   },
 ];
 
 const securedNodes: NodeDef[] = [
-  { id: "endpoint", label: "Endpoint", sublabel: "Attacker", x: 60, y: 220, width: 110, height: 80, color: CLR_RED, icon: "endpoint" },
-  { id: "frontend", label: "Frontend", sublabel: "App UI", x: 240, y: 220, width: 110, height: 80, color: CLR_TEAL, icon: "frontend" },
-  { id: "backend", label: "Backend", sublabel: "RAG", x: 420, y: 220, width: 110, height: 80, color: CLR_PURPLE, icon: "backend" },
-  { id: "gateway", label: "AI Gateway", sublabel: "Prisma AIRS", x: 600, y: 220, width: 150, height: 80, color: CLR_BLUE, icon: "gateway" },
-  { id: "scm", label: "Strata Cloud Manager", sublabel: "Policy Management", x: 540, y: 68, width: 140, height: 80, color: CLR_YELLOW, icon: "scm" },
-  { id: "intercept", label: "Security Guardrails", sublabel: "Prisma AIRS API", x: 720, y: 68, width: 140, height: 80, color: CLR_BLUE, icon: "intercept" },
-  { id: "llm", label: "LLM", sublabel: "Multi-Model", x: 850, y: 220, width: 110, height: 80, color: CLR_BLUE, icon: "llm" },
+  { id: "endpoint", label: "Endpoint", sublabel: "Attacker", x: 60, y: 180, width: 110, height: 80, color: CLR_RED, icon: "endpoint" },
+  { id: "frontend", label: "Frontend", sublabel: "App UI", x: 240, y: 180, width: 110, height: 80, color: CLR_TEAL, icon: "frontend" },
+  { id: "backend", label: "Backend", sublabel: "RAG", x: 420, y: 180, width: 110, height: 80, color: CLR_PURPLE, icon: "backend" },
+  { id: "gateway", label: "AI Gateway", sublabel: "Prisma AIRS", x: 640, y: 180, width: 150, height: 80, color: CLR_BLUE, icon: "gateway" },
+  { id: "scm", label: "SCM", sublabel: "Policy Management", x: 570, y: 50, width: 150, height: 80, color: CLR_YELLOW, icon: "scm" },
+  { id: "intercept", label: "Prisma AIRS API", sublabel: "Security Guardrails", x: 730, y: 50, width: 150, height: 80, color: CLR_BLUE, icon: "intercept" },
+  { id: "llm", label: "LLM", sublabel: "Multi-Model", x: 900, y: 180, width: 110, height: 80, color: CLR_BLUE, icon: "llm" },
 ];
 
 const securedEdges: EdgeDef[] = [
@@ -167,11 +174,18 @@ const securedEdges: EdgeDef[] = [
 
 const securedSteps: StepDef[] = [
   {
+    activeNodes: ["endpoint"],
+    activeEdges: ["endpoint"],
+    title: "Step 0 — Attacker Endpoint",
+    description:
+      "Pontentially malicious user sends a prompt request through the application endpoint to the frontend interface.",
+  },
+  {
     activeNodes: ["endpoint", "frontend"],
     activeEdges: ["endpoint-frontend"],
-    title: "Step 1 — User Request",
+    title: "Step 1 — Sending Request",
     description:
-      "End user sends a prompt request through the application endpoint to the frontend interface.",
+      "Attacker sends a prompt request through the application endpoint to the frontend interface.",
   },
   {
     activeNodes: ["frontend", "backend"],
@@ -181,30 +195,40 @@ const securedSteps: StepDef[] = [
       "Frontend forwards the request to the backend, which performs Retrieval-Augmented Generation to gather relevant context data.",
   },
   {
-    activeNodes: ["backend", "gateway", "scm", "intercept"],
-    activeEdges: ["backend-gateway", "gateway-scm", "gateway-intercept"],
-    title: "Step 3 — AIRS Gateway & Policy Sync",
+    activeNodes: ["backend", "gateway", "intercept"],
+    activeEdges: ["backend-gateway", "gateway-intercept"],
+    title: "Step 3 — Security Guardrails, DLP and Malware Scanning",
     description:
-      "Backend routes the request through the AIRS AI Gateway, which synchronizes security policies from Strata Cloud Manager in real time.",
+      "AIRS API performs real-time Security Guardrails, DLP and malware scanning on the request payload before it reaches any LLM.",
+    gatewayBadges: [
+      "Security Guardrails",
+      "DLP / Malware Scanning",
+    ],
+    holdMs: 2000,
   },
   {
-    activeNodes: ["gateway", "scm", "intercept"],
-    activeEdges: ["gateway-scm", "gateway-intercept"],
-    title: "Step 4 — DLP & Security Scanning",
+    activeNodes: ["backend","gateway", "scm"],
+    activeEdges: ["backend-gateway","gateway-scm"],
+    title: "Step 4 — LLM Routing and Metering",
     description:
-      "AIRS API performs real-time Data Loss Prevention and malware scanning on the request payload before it reaches any LLM.",
+      "The Prisma AIRS AI Gateway routes the request to the optimal LLM based on policy, load balancing, and budget / token limits.",
+    gatewayBadges: [
+      "Load Balancing",
+      "Budget / Token Limits",
+      "Observability",
+    ],
+    holdMs: 2000,
   },
   {
     activeNodes: ["gateway", "llm"],
     activeEdges: ["gateway-llm"],
-    title: "Step 5 — Secure Multi-LLM Distribution",
+    title: "Step 5 — Secure LLM Distribution",
     description:
-      "After passing all security checks, the AIRS Gateway routes the sanitized request to the optimal LLM with full observability and guardrails.",
+      "After passing all security checks, the Prisma AIRS AI Gateway routes the sanitized request to the optimal LLM with full observability and guardrails.",
     gatewayBadges: [
-      "Observability",
-      "Budget / Token Limits",
-      "Load Balancing",
       "Security Guardrails",
+      "DLP / Malware Scanning",
+      "Load Balancing | Budget/Token Limits | Observability",
     ],
     holdMs: 5000,
   },
@@ -344,7 +368,7 @@ function FlowNode({
   const icon = ICONS[node.icon];
   const nodeColor = active && node.activeColor ? node.activeColor : node.color;
   const opacity = active ? 1 : DIM;
-  const glowOpacity = active ? "1" : "0";
+  const glowOpacity = active ? "0.7" : "0";
   const borderOpacity = active ? 0.7 : 0.15;
   const filterId = `glow-${node.id}-${active ? "on" : "off"}`;
 
@@ -398,7 +422,7 @@ function FlowNode({
         y={node.y + node.height - (node.sublabel ? 30 : 12)}
         textAnchor="middle"
         fill={nodeText}
-        fontSize="12"
+        fontSize="14"
         fontWeight="600"
         fontFamily="Inter, system-ui, sans-serif"
       >
@@ -410,7 +434,7 @@ function FlowNode({
           y={node.y + node.height - 15}
           textAnchor="middle"
           fill={nodeSubText}
-          fontSize="12"
+          fontSize="14"
           fontFamily="Inter, system-ui, sans-serif"
         >
           {node.sublabel}
@@ -430,7 +454,7 @@ function RiskBadges({ node }: { node: NodeDef; risks: string[] }) {
   return (
     <g>
       {risks.map((label, i) => {
-        const w = label.length * 6.5 + 30;
+        const w = label.length * 6.5 + 50;
         const y = baseY + i * 26;
         return (
           <g key={label}>
@@ -458,7 +482,7 @@ function RiskBadges({ node }: { node: NodeDef; risks: string[] }) {
               x={cx - w / 2 + 8}
               y={y + 13.5}
               fill={CLR_RED}
-              fontSize="12"
+              fontSize="14"
               fontWeight="600"
               fontFamily="Inter, system-ui, sans-serif"
             >
@@ -486,7 +510,7 @@ function GatewayBadges({
   return (
     <g>
       {badges.map((label, i) => {
-        const w = label.length * 6 + 22;
+        const w = label.length * 6 + 60;
         const y = baseY + i * 24;
         return (
           <g key={label}>
@@ -515,7 +539,7 @@ function GatewayBadges({
               y={y + 12.5}
               textAnchor="middle"
               fill={CLR_BLUE}
-              fontSize="12"
+              fontSize="14"
               fontWeight="600"
               fontFamily="Inter, system-ui, sans-serif"
             >
@@ -588,15 +612,42 @@ function StepProgress({
 }
 
 // ---------------------------------------------------------------------------
+// Helpers
+// ---------------------------------------------------------------------------
+function extractSessionId(data: unknown): string | null {
+  if (!data || typeof data !== "object") return null;
+  const d = data as Record<string, unknown>;
+  type HookGroup = Array<{ checks?: Array<{ data?: { session_id?: string } }> }>;
+  const hr = d.hook_results as { after_request_hooks?: HookGroup; before_request_hooks?: HookGroup } | undefined;
+  for (const hooks of [hr?.after_request_hooks, hr?.before_request_hooks]) {
+    for (const hook of hooks ?? []) {
+      for (const check of hook.checks ?? []) {
+        if (check.data?.session_id) return check.data.session_id;
+      }
+    }
+  }
+  return null;
+}
+
+// ---------------------------------------------------------------------------
 // Main component
 // ---------------------------------------------------------------------------
+type ChatPhase =
+  | "idle" | "typing" | "backend" | "processing"
+  | "resp0" | "resp1" | "resp2" | "resp3" | "endpoint";
+
 export default function ArchitectureFlowDiagram() {
   const [darkMode, setDarkMode] = useState(true);
   const [secured, setSecured] = useState(false);
   const [rawResponse, setRawResponse] = useState<unknown>(null);
   const [currentStep, setCurrentStep] = useState(0);
   const [svgReady, setSvgReady] = useState(false);
-  const [autoplay, setAutoplay] = useState(true);
+  const [autoplay, setAutoplay] = useState(false);
+  const [chatPhase, setChatPhase] = useState<ChatPhase>("idle");
+  const chatPhaseTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const [scmUrlTemplate, setScmUrlTemplate] = useState(
+    (import.meta.env.VITE_PORTKEY_SCM_REPORT_URL as string | undefined) ?? ""
+  );
 
   const nodes = secured ? securedNodes : unsecuredNodes;
   const edges = secured ? securedEdges : unsecuredEdges;
@@ -677,11 +728,94 @@ export default function ArchitectureFlowDiagram() {
     setCurrentStep(0);
   }, []);
 
+  // ---- Chat-phase callbacks ------------------------------------------------
+  const clearChatTimer = () => {
+    if (chatPhaseTimer.current) { clearTimeout(chatPhaseTimer.current); chatPhaseTimer.current = null; }
+  };
+
+  const handleChatFocus = useCallback(() => {
+    clearChatTimer();
+    setCurrentStep(1);
+    setAutoplay(false);
+    setChatPhase("typing");
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+
+  const handleChatBlur = useCallback(() => {
+    setChatPhase((p) => {
+      if (p === "typing") { setCurrentStep(0); return "idle"; }
+      return p;
+    });
+  }, []);
+
+  const handleChatSend = useCallback(() => {
+    clearChatTimer();
+    setChatPhase("backend");
+    chatPhaseTimer.current = setTimeout(() => setChatPhase("processing"), 800);
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+
+  const handleChatResponse = useCallback(() => {
+    clearChatTimer();
+    const seq: ChatPhase[] = ["resp0", "resp1", "resp2", "resp3", "endpoint"];
+    let i = 0;
+    const advance = () => {
+      setChatPhase(seq[i]);
+      i++;
+      if (i < seq.length) {
+        chatPhaseTimer.current = setTimeout(advance, 100);
+      } else {
+        // Hold "endpoint" then return to idle
+        chatPhaseTimer.current = setTimeout(() => setChatPhase("idle"), 5000);
+      }
+    };
+    advance();
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Clean up timer on unmount
+  useEffect(() => () => clearChatTimer(), []); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // ---- Live node/edge overrides from chat phase ----------------------------
+  const liveActiveNodes = useMemo((): Set<string> | null => {
+    switch (chatPhase) {
+      case "idle":       return null;
+      case "typing":     return new Set(["endpoint", "frontend"]);
+      case "backend":    return new Set(["frontend", "backend"]);
+      case "processing": return secured
+        ? new Set(["backend", "gateway", "scm", "intercept"])
+        : new Set(["backend", "llm"]);
+      // Response reverse-walk (secured: gateway→llm → gateway→backend → backend→frontend → endpoint→frontend)
+      // Response reverse-walk (unsecured: llm→backend → backend→frontend → endpoint→frontend → endpoint)
+      case "resp0": return secured ? new Set(["gateway", "llm"])     : new Set(["llm", "backend"]);
+      case "resp1": return secured ? new Set(["gateway", "backend"]) : new Set(["backend", "frontend"]);
+      case "resp2": return secured ? new Set(["backend", "frontend"]) : new Set(["endpoint", "frontend"]);
+      case "resp3": return secured ? new Set(["endpoint", "frontend"]) : new Set(["endpoint"]);
+      case "endpoint":   return new Set(["endpoint"]);
+    }
+  }, [chatPhase, secured]);
+
+  const liveActiveEdges = useMemo((): Set<string> | null => {
+    switch (chatPhase) {
+      case "idle":       return null;
+      case "typing":     return new Set(["endpoint-frontend"]);
+      case "backend":    return new Set(["frontend-backend"]);
+      case "processing": return secured
+        ? new Set(["backend-gateway", "gateway-scm", "gateway-intercept"])
+        : new Set(["backend-llm"]);
+      case "resp0": return secured ? new Set(["gateway-llm"])     : new Set(["backend-llm"]);
+      case "resp1": return secured ? new Set(["backend-gateway"]) : new Set(["frontend-backend"]);
+      case "resp2": return secured ? new Set(["frontend-backend"]) : new Set(["endpoint-frontend"]);
+      case "resp3": return secured ? new Set(["endpoint-frontend"]) : new Set<string>();
+      case "endpoint":   return new Set<string>();
+    }
+  }, [chatPhase, secured]);
+
+  const effectiveActiveNodes = liveActiveNodes ?? activeNodeSet;
+  const effectiveActiveEdges = liveActiveEdges ?? activeEdgeSet;
+
   const toggleAutoplay = useCallback(() => setAutoplay((a) => !a), []);
 
   useEffect(() => {
     if (!autoplay) return;
-    const delay = step.holdMs ?? 2000;
+    const delay = step.holdMs ?? 1000;
     const id = setTimeout(() => {
       setCurrentStep((s) => (s + 1) % totalSteps);
     }, delay);
@@ -693,7 +827,7 @@ export default function ArchitectureFlowDiagram() {
     return () => cancelAnimationFrame(frame);
   }, [secured]);
 
-  const svgHeight = secured ? 420 : 380;
+  const svgHeight = secured ? 360 : 360;
 
   const th = {
     appBg:          darkMode ? "#0D0E12"  : "#F0F4F8",
@@ -719,6 +853,11 @@ export default function ArchitectureFlowDiagram() {
     text:         darkMode ? "#9CA3AF" : "#4B5563",
     muted:        darkMode ? "#6B7280" : "#9CA3AF",
   };
+
+  const sessionId = extractSessionId(rawResponse);
+  const scmUrl = sessionId
+    ? scmUrlTemplate.replace("${sessionId}", sessionId)
+    : null;
 
   return (
     <ThemeContext.Provider value={{ darkMode, toggleTheme: () => setDarkMode((d) => !d) }}>
@@ -847,7 +986,7 @@ export default function ArchitectureFlowDiagram() {
 
             {/* Edges */}
             {edgePaths.map((e, i) => {
-              const active = activeEdgeSet.has(e.key);
+              const active = effectiveActiveEdges.has(e.key);
               return (
                 <g
                   key={e.key}
@@ -893,7 +1032,7 @@ export default function ArchitectureFlowDiagram() {
               <FlowNode
                 key={node.id}
                 node={node}
-                active={activeNodeSet.has(node.id)}
+                active={effectiveActiveNodes.has(node.id)}
                 onClick={() => handleNodeClick(node.id)}
               />
             ))}
@@ -961,7 +1100,14 @@ export default function ArchitectureFlowDiagram() {
       >
         {/* Chat panel — 70% */}
         <div style={{ flex: 7, minHeight: 0, overflow: "hidden" }}>
-          <ChatPanel secured={secured} onRawResponse={setRawResponse} />
+          <ChatPanel
+            secured={secured}
+            onRawResponse={setRawResponse}
+            onInputFocus={handleChatFocus}
+            onInputBlur={handleChatBlur}
+            onSend={handleChatSend}
+            onResponse={handleChatResponse}
+          />
         </div>
 
         {/* API Response box — 30% */}
@@ -979,19 +1125,32 @@ export default function ArchitectureFlowDiagram() {
             <span className="text-xs font-semibold" style={{ color: rp.text }}>
               API Response
             </span>
-            {!!rawResponse && (
-              <span className="ml-auto text-[10px] px-1.5 py-0.5 rounded"
-                style={{ background: CLR_TEAL + "18", color: CLR_TEAL }}>
-                JSON
-              </span>
-            )}
+            <div className="ml-auto flex items-center gap-2">
+              {scmUrl && (
+                <a
+                  href={scmUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-[10px] px-2 py-0.5 rounded font-semibold transition-opacity hover:opacity-80"
+                  style={{ background: CLR_BLUE + "22", color: CLR_BLUE, border: `1px solid ${CLR_BLUE}40` }}
+                >
+                  View Report ↗
+                </a>
+              )}
+              {!!rawResponse && (
+                <span className="text-[11px] px-1.5 py-0.5 rounded"
+                  style={{ background: CLR_TEAL + "18", color: CLR_TEAL }}>
+                  JSON
+                </span>
+              )}
+            </div>
           </div>
 
           {/* Body */}
           <div className="flex-1 overflow-y-auto p-3 min-h-0">
             {rawResponse ? (
               <pre
-                className="text-[10px] font-mono leading-relaxed whitespace-pre-wrap break-all"
+                className="text-[11px] font-mono leading-relaxed whitespace-pre-wrap break-all"
                 style={{ color: rp.text }}
               >
                 {JSON.stringify(rawResponse, null, 2)}
@@ -1028,7 +1187,7 @@ export default function ArchitectureFlowDiagram() {
         {darkMode ? <SunIcon /> : <MoonIcon />}
       </button>
       {/* Admin panel — renders its own fixed-position trigger button */}
-      <RagAdmin />
+      <AdminPage onScmReportUrl={setScmUrlTemplate} />
     </div>
     </ThemeContext.Provider>
   );

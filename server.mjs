@@ -2,6 +2,26 @@ import express from "express";
 import { existsSync, readFileSync, writeFileSync } from "fs";
 import { dirname, join } from "path";
 import { fileURLToPath } from "url";
+import { scrypt, randomBytes, timingSafeEqual } from "crypto";
+import { promisify } from "util";
+
+const scryptAsync = promisify(scrypt);
+const SCRYPT_PREFIX = "scrypt:";
+
+async function hashPassword(password) {
+  const salt = randomBytes(16).toString("hex");
+  const buf = await scryptAsync(password, salt, 64);
+  return `${SCRYPT_PREFIX}${salt}:${buf.toString("hex")}`;
+}
+
+async function verifyPassword(password, stored) {
+  if (!stored.startsWith(SCRYPT_PREFIX)) {
+    return password === stored; // legacy plaintext — migration path
+  }
+  const [, salt, hash] = stored.split(":");
+  const buf = await scryptAsync(password, salt, 64);
+  return timingSafeEqual(Buffer.from(hash, "hex"), buf);
+}
 
 // Load .env if present (built-in since Node 20.12, no extra deps needed)
 try { process.loadEnvFile(); } catch { /* .env not found — rely on system env */ }
@@ -16,6 +36,14 @@ if (!ADMIN_PASSWORD) {
   console.error("ERROR: ADMIN_PASSWORD is not set. Copy .env.example to .env and define it.");
   process.exit(1);
 }
+
+const ADMIN_USERNAME = process.env.ADMIN_USERNAME || "admin";
+const USERS_FILE = join(__dirname, "data", "users.json");
+
+function loadUsers() {
+  try { return JSON.parse(readFileSync(USERS_FILE, "utf-8")); } catch { return { users: [] }; }
+}
+function saveUsers(data) { writeFileSync(USERS_FILE, JSON.stringify(data, null, 2)); }
 
 const DEFAULT_CHAT_CONFIG = {
   portkey: { baseUrl: "https://aigw.portkey.ai/v1", apiKey: "", provider: "@gpt-4-1-mini", model: "gpt-4.1-mini" },
@@ -111,6 +139,63 @@ app.delete("/api/rag/docs", requireAuth, (req, res) => {
   const data = loadData();
   data.docs = data.docs.filter((d) => d.path !== path);
   saveData(data);
+  res.json({ ok: true });
+});
+
+// POST /api/login — verifies username+password, returns token
+app.post("/api/login", async (req, res) => {
+  const { username, password } = req.body ?? {};
+  if (!username || !password) return res.status(400).json({ error: "username and password required" });
+  if (username === ADMIN_USERNAME && password === ADMIN_PASSWORD) return res.json({ token: ADMIN_PASSWORD });
+  const data = loadUsers();
+  const users = data.users ?? [];
+  for (const user of users) {
+    if (user.username === username && await verifyPassword(password, user.password)) {
+      // Transparently migrate legacy plaintext to hashed on first successful login
+      if (!user.password.startsWith(SCRYPT_PREFIX)) {
+        user.password = await hashPassword(password);
+        saveUsers(data);
+      }
+      return res.json({ token: ADMIN_PASSWORD });
+    }
+  }
+  res.status(401).json({ error: "Invalid credentials" });
+});
+
+// GET /api/users — list extra admin users (no passwords returned)
+app.get("/api/users", requireAuth, (req, res) => {
+  res.json((loadUsers().users ?? []).map(u => ({ username: u.username })));
+});
+
+// POST /api/users — add admin user {username (email), password}
+app.post("/api/users", requireAuth, async (req, res) => {
+  const { username, password } = req.body ?? {};
+  if (!username || !password) return res.status(400).json({ error: "username and password required" });
+  const data = loadUsers();
+  data.users = data.users ?? [];
+  if (data.users.find(u => u.username === username)) return res.status(409).json({ error: "User already exists" });
+  data.users.push({ username, password: await hashPassword(password) });
+  saveUsers(data);
+  res.json({ ok: true });
+});
+
+// PATCH /api/users/:username — change password for an existing user
+app.patch("/api/users/:username", requireAuth, async (req, res) => {
+  const { password } = req.body ?? {};
+  if (!password) return res.status(400).json({ error: "password is required" });
+  const data = loadUsers();
+  const user = (data.users ?? []).find(u => u.username === req.params.username);
+  if (!user) return res.status(404).json({ error: "User not found" });
+  user.password = await hashPassword(password);
+  saveUsers(data);
+  res.json({ ok: true });
+});
+
+// DELETE /api/users/:username — remove admin user
+app.delete("/api/users/:username", requireAuth, (req, res) => {
+  const data = loadUsers();
+  data.users = (data.users ?? []).filter(u => u.username !== req.params.username);
+  saveUsers(data);
   res.json({ ok: true });
 });
 

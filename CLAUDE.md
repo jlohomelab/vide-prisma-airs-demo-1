@@ -15,13 +15,30 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 - **Preview prod build:** `npm run preview`
 - **Production serve:** `npm start` — runs `node server.mjs`, which serves the built `dist/` as static files and exposes the RAG API on port 3001 (or `$PORT`). Run `npm run build` first.
 
+## Environment Variables
+
+Copy `.env.example` to `.env` and fill in secrets before running. Never commit `.env`.
+
+| Variable | Side | Description |
+|---|---|---|
+| `ADMIN_PASSWORD` | Server only | Password for all admin API calls (`x-admin-password` header) |
+| `ADMIN_USERNAME` | Server only | Default admin login username (default: `admin`) |
+| `VITE_PORTKEY_BASE_URL` | Client | Default Portkey gateway base URL |
+| `VITE_PORTKEY_PROVIDER` | Client | Default `x-portkey-provider` value |
+| `VITE_PORTKEY_MODEL` | Client | Default model for Portkey mode |
+| `VITE_PORTKEY_SCM_REPORT_URL` | Client | URL template for "View Report" button; use `${sessionId}` as placeholder |
+| `VITE_DIRECT_BASE_URL` | Client | Default direct LLM endpoint URL |
+| `VITE_DIRECT_MODEL` | Client | Default model for direct LLM mode |
+
+`VITE_*` variables are bundled into the client JavaScript — do not put secrets there. API keys and bearer tokens are stored server-side in `data/config.json`, never in `.env`.
+
 ## Production Deployment
 
 Build then serve: `npm run build && npm start`. The Express server (`server.mjs`) handles both static-file serving of `dist/` and the `/api` routes, listening on port 3001 (or `$PORT`) bound to all interfaces. `preview.allowedHosts: true` in `vite.config.ts` disables Vite's host header validation for `npm run preview` (not used in production with `npm start`).
 
 ## Architecture
 
-Single-page React 19 + TypeScript app built with Vite 8. Tailwind CSS v4 via the `@tailwindcss/vite` plugin (imported as `@import "tailwindcss"` in `src/index.css` — no `tailwind.config` file).
+Single-page React 19 + TypeScript app built with Vite 8. Tailwind CSS v4 via the `@tailwindcss/vite` plugin (imported as `@import "tailwindcss"` in `src/index.css` — no `tailwind.config` file). Global font scale: `html { font-size: 120% }` in `src/index.css`.
 
 ### Entry flow
 
@@ -29,81 +46,102 @@ Single-page React 19 + TypeScript app built with Vite 8. Tailwind CSS v4 via the
 
 ### Page layout
 
-The page uses a two-column flex-row layout:
-- **Left column** (`flex-1`) — the interactive SVG diagram
-- **Right column** (`w-[360px]`, sticky) — the AI chatbot panel (`ChatPanel`)
-- **Fixed overlay** (`bottom-4 left-4`) — Admin button rendered by `RagAdmin`
+Two-column flex-row layout:
+- **Left column** (`flex-1`) — interactive SVG diagram, step controls, legend
+- **Right column** (`w-[420px]`, sticky, 70/30 height split):
+  - Top 70%: `ChatPanel` — AI chatbot
+  - Bottom 30%: API Response box — raw JSON from the last LLM/gateway call
+- **Fixed overlays** (`bottom-4`):
+  - `left-4` — light/dark theme toggle button
+  - `left-16` — Admin Console button (rendered by `AdminPage`)
 
 ### Key components
 
-**`client/src/components/ArchitectureFlowDiagram.tsx`** is the main UI shell and the interactive SVG diagram. It imports and renders `ChatPanel` and `RagAdmin`. It owns:
+**`client/src/components/ArchitectureFlowDiagram.tsx`** is the main UI shell. It imports and renders `ChatPanel` and `AdminPage`. It owns:
 
-- **Two scenario modes** (unsecured / secured) toggled at runtime, each with its own node layout, edge set, and step definitions
-- **Step-by-step walkthrough** with Previous/Next/Reset/Auto-play controls; step state determines which nodes and edges are highlighted vs. dimmed (70% opacity for inactive nodes, 30% for inactive edges)
-- **Auto-play** enabled by default, cycles through steps at 2s intervals; specific steps can override via `holdMs` (e.g. LLM steps hold for 5s)
+- **Two scenario modes** (unsecured / secured) toggled at runtime, each with its own node layout, edge set, and step definitions (Step 0–3 unsecured, Step 0–5 secured)
+- **Step-by-step walkthrough** with Previous/Next/Reset/Auto-play controls; step state determines which nodes and edges are highlighted vs. dimmed
+- **Auto-play** cycles through steps; specific steps can override hold time via `holdMs`
 - **Clickable nodes** — clicking any node jumps to the earliest step where it is active and pauses auto-play
-- **Cumulative edge highlighting** — played edges stay active, except transient edges (gateway→SCM, gateway→intercept) which only light up on their own steps
-- **SVG animated particles** using `requestAnimationFrame` + `getPointAtLength` for real-time dot-along-path animation
+- **Cumulative edge highlighting** — played edges stay active, except transient edges (gateway→SCM, gateway→intercept)
+- **SVG animated particles** using `requestAnimationFrame` + `getPointAtLength`
 - **Contextual overlays** — risk callout badges (red) on the unsecured final step; gateway capability badges (blue) on the secured final step
-- **Conditional node colors** — nodes support an `activeColor` field that overrides `color` when the node's step is active (used for unsecured LLM: white → red)
+- **Conditional node colors** — nodes support an `activeColor` field that overrides `color` when active (unsecured LLM: white → red)
+- **Chat-phase live highlighting** — a `ChatPhase` state machine (`idle | typing | backend | processing | resp0–resp3 | endpoint`) overrides step-based node/edge highlighting in response to real chat events (focus, send, response received). Transitions are driven by callbacks from `ChatPanel` (`onInputFocus`, `onInputBlur`, `onSend`, `onResponse`).
+- **API Response box** — displays raw JSON from the last LLM/gateway response; "View Report ↗" button appears when a `session_id` is found in `hook_results`, linking to Strata Cloud Manager using the configurable `scmUrlTemplate`
+- **ThemeContext** — provides `darkMode: boolean` and `toggleTheme()` to all child components; node fills, borders, and text colors switch between dark and light
 
 All node positions, edge connections, step metadata, and color palette are defined as constants at the top of this file — no external data files.
 
-**`server.mjs`** — Express 5 REST API server for both the RAG knowledge base and LLM configuration. It owns:
+**`server.mjs`** — Express 5 REST API server. It owns:
 
 - Listens on port 3001 (or `$PORT`), binds to `0.0.0.0`
-- Reads/writes `data/rag.json` and `data/config.json` via synchronous `readFileSync`/`writeFileSync`
-- Routes: `GET /api/rag/docs` (public), `POST /api/rag/docs` (upsert, auth), `DELETE /api/rag/docs` (auth), `GET /api/config` (auth), `POST /api/config` (auth)
-- Auth: `x-admin-password` request header checked by `requireAuth` middleware against hardcoded `"Pal0Alt0"`
-- In production (after build): serves `dist/` as static files with SPA fallback (`index.html` for all unmatched routes)
-- Permissive CORS (`*`) so the Vite dev server on a different port can reach it
+- Reads/writes `data/rag.json`, `data/config.json`, and `data/users.json` via synchronous `readFileSync`/`writeFileSync`
+- Auth: `x-admin-password` request header checked by `requireAuth` middleware against `ADMIN_PASSWORD` env var
+- Routes:
+  - `GET /api/rag/docs` — public; returns all RAG documents
+  - `POST /api/rag/docs` — upsert a document (auth)
+  - `DELETE /api/rag/docs` — delete a document (auth)
+  - `GET /api/config` — return LLM config (auth)
+  - `POST /api/config` — save LLM config (auth)
+  - `POST /api/login` — verify username + password against env admin or `data/users.json`; returns `{ token }` on success
+  - `GET /api/users` — list extra admin users without passwords (auth)
+  - `POST /api/users` — add admin user `{ username, password }` — password hashed with scrypt before saving (auth)
+  - `PATCH /api/users/:username` — change password for an existing user `{ password }` — re-hashed before saving (auth)
+  - `DELETE /api/users/:username` — remove admin user (auth)
+- In production: serves `dist/` as static files with SPA fallback
+- Permissive CORS (`*`) for Vite dev server compatibility
 
-**`data/rag.json`** — persistent JSON store for RAG documents. Structure: `{ "docs": [{ path, title, folder, content }] }`. Single source of truth for the knowledge base (replaces the deleted `ragSeed.ts`). Contains 7 seed documents across 3 folders (`hr`, `expense`, `kb`), including a synthetic employee CSV with PII-like data used to demo AIRS security scanning.
+**`data/rag.json`** — RAG documents store. Structure: `{ "docs": [{ path, title, folder, content }] }`. Contains seed documents across 3 folders (`hr`, `expense`, `kb`), including a synthetic employee CSV with PII-like data used to demo AIRS scanning.
 
-**`data/config.json`** — persistent JSON store for LLM configuration. Structure: `{ portkey: { baseUrl, apiKey, provider, model }, direct: { baseUrl, bearerToken, model } }`. Protected by `requireAuth`; never accessible without the admin password. Created on first save; defaults are embedded in `DEFAULT_CHAT_CONFIG` in `server.mjs`.
+**`data/config.json`** — LLM config store. Structure: `{ portkey: { baseUrl, apiKey, provider, model, scmReportUrl }, direct: { baseUrl, bearerToken, model } }`. Protected by `requireAuth`; created on first save.
 
-**`client/src/components/ChatPanel.tsx`** — right-side AI chatbot with dual-mode LLM support. Accepts a `secured: boolean` prop from `ArchitectureFlowDiagram`. It owns:
+**`data/users.json`** — Extra admin users store. Structure: `{ "users": [{ username, password }] }`. Passwords are hashed with `crypto.scrypt` (format: `scrypt:{hex_salt}:{hex_hash}`); a plaintext-fallback in `verifyPassword` transparently upgrades legacy entries on first successful login. The default admin (from env) is not stored here. Created on first user addition.
 
-- **Two LLM paths** switched by the `secured` prop:
-  - `secured=true` → calls Portkey gateway (`POST {baseUrl}/chat/completions` with `x-portkey-api-key` / `x-portkey-provider` headers, `max_tokens: 512`)
-  - `secured=false` → calls the LLM directly (`POST {baseUrl}` with `Authorization: Bearer {token}`, `max_completion_tokens: 13107`)
-- **LLM config stored server-side** in `data/config.json` via `GET/POST /api/config` (requires admin password). Admin password cached in `localStorage` under key `"Pal0Alt0"` (`ADMIN_PW_KEY`); loaded on component mount and used to auto-fetch config.
-- **Gear icon settings modal** — tabbed: "Portkey" tab (4 fields: base URL, API key, provider, model) and "Direct LLM" tab (3 fields: API URL, bearer token, model). Default tab matches current mode. Modal auto-fetches current server config on open when password is stored. Load button triggers manual re-fetch.
-- **RAG gate**: on every send, calls `await loadRagDocs()`; passes result to `searchDocs(text, ragDocs)`; server errors silently fall back to empty doc list. If nothing matches, shows `"Unable to access internal data."` without calling the LLM.
-- Header badge and accent color reflect current mode: blue = Secured (Portkey), orange = Unsecured (Direct LLM)
+**`client/src/components/ChatPanel.tsx`** — AI chatbot panel (right column, top 70%). Accepts `secured: boolean` and event callbacks from `ArchitectureFlowDiagram`. It owns:
 
-**`client/src/components/RagAdmin.tsx`** — password-gated admin panel for managing the knowledge base. It owns:
+- **Two LLM paths** switched by `secured` prop:
+  - `secured=true` → `POST {baseUrl}/chat/completions` with `x-portkey-api-key` / `x-portkey-provider` headers
+  - `secured=false` → `POST {baseUrl}` with `Authorization: Bearer {token}`
+- **LLM config** loaded from `GET /api/config` on mount using the stored admin token from `localStorage["chat-admin-password"]`
+- **RAG gate**: calls `loadRagDocs()` + `searchDocs()` on every send; returns `"Unable to access internal data."` if no match without calling the LLM
+- **Block detection**: parses `hook_results.after_request_hooks[].checks[].data.action === "block"` from the response; blocked messages display a red-bordered security warning instead of the LLM reply
+- **Event callbacks**: `onInputFocus`, `onInputBlur`, `onSend`, `onResponse` — used by `ArchitectureFlowDiagram` to drive the chat-phase node highlighting
 
-- A `fixed bottom-4 left-4` trigger button that opens a full-screen modal; password gate resets on every modal open (`authed` reset in `handleClose`)
-- Password authentication (hardcoded `ADMIN_PASSWORD = "Pal0Alt0"`); "Authenticated" badge shown in header after login
-- Two-panel layout: collapsible folder/file tree on the left, document editor on the right
-- Full CRUD for documents: create file within folder, edit title/content (dirty-state tracking with "Unsaved changes" label), delete
-- **New Folder** creation — admin can add categories beyond the three defaults (`hr`, `expense`, `kb`); saves a `.keep` placeholder file via `saveDoc`
-- All changes persist to the server via `saveDoc(doc, ADMIN_PASSWORD)` / `deleteDoc(path, ADMIN_PASSWORD)`; a server-error banner with retry button is shown if `loadRagDocs()` fails
-- No localStorage usage
+**`client/src/components/AdminPage.tsx`** — Combined admin console. Renders a `fixed bottom-4 left-16` trigger button. It owns:
+
+- **Auto-authentication**: on open, checks `localStorage["chat-admin-password"]`; if found, skips the login form
+- **Login gate**: username + password form → `POST /api/login` → stores returned token in `localStorage["chat-admin-password"]`
+- **Three tabs** (visible after login):
+  - **Chat Settings** — Portkey config (baseUrl, apiKey, provider, model, SCM Report URL) and Direct LLM config (baseUrl, bearerToken, model); load/save via `GET/POST /api/config`; emits `onScmReportUrl` on save
+  - **Knowledge Base** — full RAG document CRUD: folder tree, file list, title/content editor, new folder/file creation, delete; uses stored token for API calls
+  - **Users** — list extra admin users, add user (email as username + password), change password (inline expand per row), delete user; calls `/api/users` endpoints
+- **Logout** — clears `localStorage["chat-admin-password"]` and resets auth state
+
+**`client/src/components/RagAdmin.tsx`** — Legacy standalone admin panel. Superseded by `AdminPage` and no longer rendered; kept in the codebase but unused.
+
+**`client/src/contexts/ThemeContext.tsx`** — React context for light/dark mode. Provides `{ darkMode: boolean, toggleTheme: () => void }`. Components call `useTheme()` to read the current mode and apply themed colors.
 
 ### RAG utilities
 
-**`client/src/utils/rag.ts`** — HTTP client + search utility. No embedded data, no localStorage. Company: PAN Technologies, domain pan.com.
+**`client/src/utils/rag.ts`** — HTTP client + search utility. Company: PAN Technologies, domain pan.com.
 
 - `loadRagDocs(): Promise<RagDoc[]>` — `GET /api/rag/docs`; throws on non-OK HTTP
 - `saveDoc(doc, adminPassword): Promise<void>` — `POST /api/rag/docs` with `x-admin-password` header
 - `deleteDoc(path, adminPassword): Promise<void>` — `DELETE /api/rag/docs` with `x-admin-password` header
-- `searchDocs(query, docs)` — pure local keyword frequency scoring; corpus is `folder + title + content` (so folder names like "hr" are searchable); strips stop-words and tokens shorter than 2 chars; for terms ending in "s" also tries the de-pluralised form (e.g. "employees" → matches "employee"); returns top-3 matching document excerpts as a formatted string, or `null` if nothing matches
-
-`ragSeed.ts` has been deleted. Document data lives in `data/rag.json` on the server.
+- `searchDocs(query, docs)` — pure local keyword frequency scoring; corpus is `folder + title + content`; strips stop-words and tokens shorter than 2 chars; de-pluralises terms ending in "s"; returns top-3 matching document excerpts as a formatted string, or `null` if nothing matches
 
 ### Dev proxy
 
-`vite.config.ts` proxies `/api/*` → `http://localhost:3001` so that `fetch("/api/rag/docs")` in the client works from the Vite dev server without CORS issues or hardcoded ports.
+`vite.config.ts` proxies `/api/*` → `http://localhost:3001` so that `fetch("/api/rag/docs")` works from the Vite dev server without CORS issues or hardcoded ports.
 
 ### Duplicate file note
 
-`src/ArchitectureFlowDiagram.tsx` is a near-duplicate of `client/src/components/ArchitectureFlowDiagram.tsx` (missing some comments). The app imports from `client/src/components/` — the `src/` copy is unused.
+`src/ArchitectureFlowDiagram.tsx` is a near-duplicate of `client/src/components/ArchitectureFlowDiagram.tsx`. The app imports from `client/src/components/` — the `src/` copy is unused.
 
 ## Styling
 
-Tailwind CSS v4 utility classes for layout/controls. SVG elements are styled inline (fill, stroke, opacity, filters). Color palette is defined as constants (`CLR_ORANGE`, `CLR_TEAL`, `CLR_BLUE`, `CLR_RED`, `CLR_PURPLE`, `CLR_YELLOW`) in the diagram component. Do not use vendor-specific prefixes in constant names.
+Tailwind CSS v4 utility classes for layout/controls. SVG elements are styled inline. Color palette constants (`CLR_ORANGE`, `CLR_TEAL`, `CLR_BLUE`, `CLR_RED`, `CLR_PURPLE`, `CLR_YELLOW`) are defined in the diagram component. Do not use vendor-specific prefixes in constant names. Theme-aware colors are derived via `buildTheme(darkMode)` helpers local to each component.
 
 ## TypeScript
 

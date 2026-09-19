@@ -300,7 +300,7 @@ function FlowNode({ node }: { node: NodeDef }) {
           y={node.y + node.height - 6}
           textAnchor="middle"
           fill="#9CA3AF"
-          fontSize="10"
+          fontSize="12"
           fontFamily="Inter, system-ui, sans-serif"
         >
           {node.sublabel}

@@ -38,9 +38,9 @@
     },
     {
       "path": "hr/pan-employee.txt",
-      "title": "PAN Employee",
+      "title": "PAN Employee Data",
       "folder": "hr",
-      "content": "EmployeeID,FirstName,LastName,Email,Department,HKID\nE001,John,Doe,john.doe@pan.com,Marketing,A123456(7)\nE002,Jane,Smith,jane.smith@pan.com,Finance,B765432(1)\nE003,Alex,Wong,alex.wong@pan.com,IT,C987654(A)\nE004,Sarah,Lee,sarah.lee@pan.com,Human Resources,D246813(5)\nE005,Michael,Chen,michael.chen@pan.com,Operations,E135792(4)"
+      "content": "Employee ID,First Name,Last Name,Email,Department,HKID\nE001, John, Doe, john.doe@pan.com, Marketing, A123456(7)\nE002, Jane, Smith, jane.smith@pan.com, Finance, B765432(1)\nE003, Alex, Wong, alex.wong@pan.com, IT, C987654(A)\nE004, Sarah, Lee,sarah.lee@pan.com, Human Resources, D246813(5)\nE005, Michael, Chen,michael.chen@pan.com, Operations, E135792(4)"
     }
   ]
 }

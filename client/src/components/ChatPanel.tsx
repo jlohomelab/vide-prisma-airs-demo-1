@@ -61,6 +61,7 @@ interface Message {
   role: "user" | "assistant";
   content: string;
   error?: boolean;
+  blocked?: boolean;
 }
 
 interface PortkeyConfig {
@@ -68,6 +69,7 @@ interface PortkeyConfig {
   provider: string;
   apiKey: string;
   model: string;
+  scmReportUrl: string;
 }
 
 interface DirectConfig {
@@ -83,15 +85,16 @@ interface ChatConfig {
 
 const DEFAULT_CONFIG: ChatConfig = {
   portkey: {
-    baseUrl: "https://aigw.portkey.ai/v1",
-    provider: "@gpt-4-1-mini",
+    baseUrl: (import.meta.env.VITE_PORTKEY_BASE_URL as string | undefined) ?? "https://aigw.portkey.ai/v1",
+    provider: (import.meta.env.VITE_PORTKEY_PROVIDER as string | undefined) ?? "@gpt-4-1-mini",
     apiKey: "",
-    model: "gpt-4.1-mini",
+    model: (import.meta.env.VITE_PORTKEY_MODEL as string | undefined) ?? "gpt-4.1-mini",
+    scmReportUrl: "",
   },
   direct: {
-    baseUrl: "https://jaloOpenAI.openai.azure.com/openai/v1/chat/completions",
+    baseUrl: (import.meta.env.VITE_DIRECT_BASE_URL as string | undefined) ?? "https://jaloOpenAI.openai.azure.com/openai/v1/chat/completions",
     bearerToken: "",
-    model: "gpt-4.1-mini",
+    model: (import.meta.env.VITE_DIRECT_MODEL as string | undefined) ?? "gpt-4.1-mini",
   },
 };
 
@@ -99,36 +102,6 @@ async function fetchConfig(password: string): Promise<ChatConfig> {
   const res = await fetch("/api/config", { headers: { "x-admin-password": password } });
   if (!res.ok) throw new Error(`${res.status}`);
   return res.json() as Promise<ChatConfig>;
-}
-
-async function pushConfig(password: string, cfg: ChatConfig): Promise<void> {
-  const res = await fetch("/api/config", {
-    method: "POST",
-    headers: { "Content-Type": "application/json", "x-admin-password": password },
-    body: JSON.stringify(cfg),
-  });
-  if (!res.ok) {
-    const txt = await res.text().catch(() => "");
-    throw new Error(txt || String(res.status));
-  }
-}
-
-function GearIcon(): JSX.Element {
-  return (
-    <svg
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="2"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-      width="15"
-      height="15"
-    >
-      <circle cx="12" cy="12" r="3" />
-      <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z" />
-    </svg>
-  );
 }
 
 function SendIcon(): JSX.Element {
@@ -149,69 +122,22 @@ function SendIcon(): JSX.Element {
   );
 }
 
-function LockIcon(): JSX.Element {
-  return (
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"
-      strokeLinecap="round" strokeLinejoin="round" width="13" height="13">
-      <rect x="3" y="11" width="18" height="11" rx="2" ry="2" />
-      <path d="M7 11V7a5 5 0 0 1 10 0v4" />
-    </svg>
-  );
-}
-
-function ConfigField({
-  label,
-  value,
-  onChange,
-  placeholder,
-  type = "text",
-}: {
-  label: string;
-  value: string;
-  onChange: (v: string) => void;
-  placeholder: string;
-  type?: string;
-}): JSX.Element {
-  const { darkMode } = useTheme();
-  const th = buildTheme(darkMode);
-  return (
-    <div>
-      <label className="block text-xs font-medium mb-1.5" style={{ color: th.labelText }}>
-        {label}
-      </label>
-      <input
-        type={type}
-        value={value}
-        onChange={(e) => onChange(e.target.value)}
-        placeholder={placeholder}
-        className="w-full rounded-lg px-3 py-2 text-sm placeholder-gray-500 focus:outline-none transition-colors"
-        style={{ background: th.inputBg, border: `1px solid ${th.cardBorder}`, color: th.textPrimary }}
-        onFocus={(e) => { e.target.style.borderColor = CLR_BLUE; }}
-        onBlur={(e) => { e.target.style.borderColor = th.cardBorder; }}
-      />
-    </div>
-  );
-}
-
-export default function ChatPanel({ secured, onRawResponse }: {
+export default function ChatPanel({ secured, onRawResponse, onInputFocus, onInputBlur, onSend, onResponse }: {
   secured: boolean;
   onRawResponse?: (data: unknown) => void;
+  onInputFocus?: () => void;
+  onInputBlur?: () => void;
+  onSend?: () => void;
+  onResponse?: () => void;
 }): JSX.Element {
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState("");
   const [isLoading, setIsLoading] = useState(false);
-  const [showConfig, setShowConfig] = useState(false);
 
   const [chatConfig, setChatConfig] = useState<ChatConfig>(DEFAULT_CONFIG);
-  const [draftConfig, setDraftConfig] = useState<ChatConfig>(DEFAULT_CONFIG);
-  const [adminPassword, setAdminPassword] = useState<string>(
-    () => localStorage.getItem(ADMIN_PW_KEY) ?? (import.meta.env.VITE_ADMIN_PASSWORD as string ?? "")
+  const [adminPassword] = useState<string>(
+    () => localStorage.getItem(ADMIN_PW_KEY) ?? ""
   );
-  const [draftPassword, setDraftPassword] = useState("");
-  const [configTab, setConfigTab] = useState<"portkey" | "direct">("portkey");
-  const [configLoading, setConfigLoading] = useState(false);
-  const [configError, setConfigError] = useState<string | null>(null);
-  const [saveError, setSaveError] = useState<string | null>(null);
 
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
@@ -220,59 +146,13 @@ export default function ChatPanel({ secured, onRawResponse }: {
   useEffect(() => {
     if (!adminPassword) return;
     fetchConfig(adminPassword)
-      .then((cfg) => setChatConfig(cfg))
+      .then((cfg) => { setChatConfig(cfg); })
       .catch(() => { /* silently fall back to defaults */ });
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages, isLoading]);
-
-  const openConfig = () => {
-    setDraftConfig(chatConfig);
-    const pw = adminPassword;
-    setDraftPassword(pw);
-    setConfigTab(secured ? "portkey" : "direct");
-    setConfigError(null);
-    setSaveError(null);
-    setShowConfig(true);
-    if (pw) void loadConfigInModal(pw);
-  };
-
-  const loadConfigInModal = async (password: string) => {
-    if (!password) return;
-    setConfigLoading(true);
-    setConfigError(null);
-    try {
-      const cfg = await fetchConfig(password);
-      setDraftConfig(cfg);
-    } catch (e) {
-      const msg = e instanceof Error ? e.message : "Failed to load config";
-      setConfigError(msg === "401" ? "Wrong admin password" : `Load failed: ${msg}`);
-    } finally {
-      setConfigLoading(false);
-    }
-  };
-
-  const saveConfig = async () => {
-    if (!draftPassword) {
-      setSaveError("Enter admin password to save");
-      return;
-    }
-    setSaveError(null);
-    setConfigLoading(true);
-    try {
-      await pushConfig(draftPassword, draftConfig);
-      localStorage.setItem(ADMIN_PW_KEY, draftPassword);
-      setAdminPassword(draftPassword);
-      setChatConfig(draftConfig);
-      setShowConfig(false);
-    } catch (e) {
-      setSaveError(e instanceof Error ? e.message : "Save failed");
-    } finally {
-      setConfigLoading(false);
-    }
-  };
 
   const { darkMode } = useTheme();
   const th = buildTheme(darkMode);
@@ -285,6 +165,7 @@ export default function ChatPanel({ secured, onRawResponse }: {
     const text = input.trim();
     if (!text || isLoading) return;
     onRawResponse?.(null);
+    onSend?.();
 
     const userMsg: Message = { role: "user", content: text };
     const history = [...messages, userMsg];
@@ -365,21 +246,40 @@ export default function ChatPanel({ secured, onRawResponse }: {
         });
       }
 
-      if (!res.ok) {
-        const errText = await res.text().catch(() => "Unknown error");
-        throw new Error(`HTTP ${res.status}: ${errText.slice(0, 300)}`);
+      const rawText = await res.text().catch(() => "");
+      let data: {
+        action?: string;
+        choices?: Array<{ message?: { content?: string } }>;
+        hook_results?: {
+          before_request_hooks?: Array<{ checks?: Array<{ data?: { action?: string } }> }>;
+          after_request_hooks?: Array<{ checks?: Array<{ data?: { action?: string } }> }>;
+        };
+      } = {};
+      try { data = JSON.parse(rawText) as typeof data; } catch { /* not JSON */ }
+
+      onRawResponse?.(data);
+
+      const isBlocked = (hooks: Array<{ checks?: Array<{ data?: { action?: string } }> }> | undefined) =>
+        hooks?.some((h) => h.checks?.some((c) => c.data?.action === "block")) ?? false;
+      const blocked =
+        data.action === "block" ||
+        isBlocked(data.hook_results?.after_request_hooks) ||
+        isBlocked(data.hook_results?.before_request_hooks);
+      if (!blocked && !res.ok) {
+        throw new Error(`HTTP ${res.status}: ${rawText.slice(0, 300)}`);
       }
 
-      const data = await res.json() as { choices?: Array<{ message?: { content?: string } }> };
-      const content = data.choices?.[0]?.message?.content ?? "(no response)";
-      onRawResponse?.(data);
-      setMessages((prev) => [...prev, { role: "assistant", content }]);
+      const content = blocked
+        ? "Security violation! Please ensure your query is not related to harmful or sensitive data (e.g. PII)."
+        : (data.choices?.[0]?.message?.content ?? "(no response)");
+      setMessages((prev) => [...prev, { role: "assistant", content, blocked }]);
     } catch (err) {
       const msg = err instanceof Error ? err.message : String(err);
       onRawResponse?.({ error: msg });
       setMessages((prev) => [...prev, { role: "assistant", content: msg, error: true }]);
     } finally {
       setIsLoading(false);
+      onResponse?.();
     }
   };
 
@@ -398,163 +298,6 @@ export default function ChatPanel({ secured, onRawResponse }: {
 
   return (
     <>
-      {/* Config modal */}
-      {showConfig && (
-        <div
-          className="fixed inset-0 z-50 flex items-center justify-center p-4"
-          style={{ background: "rgba(0,0,0,0.72)", backdropFilter: "blur(6px)" }}
-          onClick={() => setShowConfig(false)}
-        >
-          <div
-            className="w-full max-w-md rounded-2xl border p-6 shadow-2xl"
-            style={{ background: th.modalBg, borderColor: th.cardBorder }}
-            onClick={(e) => e.stopPropagation()}
-          >
-            {/* Modal header */}
-            <div className="flex items-center gap-2 mb-5">
-              <span style={{ color: accentColor }}><GearIcon /></span>
-              <h2 className="font-bold text-base" style={{ color: th.textPrimary }}>Chat Settings</h2>
-            </div>
-
-            {/* Admin password row */}
-            <div className="mb-5">
-              <label className="flex items-center gap-1.5 text-xs font-medium mb-1.5" style={{ color: th.labelText }}>
-                <LockIcon /> Admin Password
-              </label>
-              <div className="flex gap-2">
-                <input
-                  type="password"
-                  value={draftPassword}
-                  onChange={(e) => setDraftPassword(e.target.value)}
-                  placeholder="Required to load / save"
-                  className="flex-1 rounded-lg px-3 py-2 text-sm placeholder-gray-500 focus:outline-none transition-colors"
-                  style={{ background: th.inputBg, border: `1px solid ${th.cardBorder}`, color: th.textPrimary }}
-                  onFocus={(e) => { e.target.style.borderColor = CLR_BLUE; }}
-                  onBlur={(e) => { e.target.style.borderColor = th.cardBorder; }}
-                />
-                <button
-                  onClick={() => void loadConfigInModal(draftPassword)}
-                  disabled={configLoading || !draftPassword}
-                  className="px-3 py-2 text-xs rounded-lg border transition-colors disabled:opacity-40"
-                  style={{ color: CLR_BLUE, borderColor: th.cardBorder }}
-                >
-                  {configLoading ? "…" : "Load"}
-                </button>
-              </div>
-              {configError && (
-                <p className="text-xs mt-1.5" style={{ color: "#FF4D6A" }}>{configError}</p>
-              )}
-            </div>
-
-            {/* Tabs */}
-            <div className="flex gap-1 mb-4 p-1 rounded-lg" style={{ background: th.tabsBg }}>
-              {(["portkey", "direct"] as const).map((tab) => (
-                <button
-                  key={tab}
-                  onClick={() => setConfigTab(tab)}
-                  className="flex-1 py-1.5 text-xs font-semibold rounded-md transition-colors"
-                  style={
-                    configTab === tab
-                      ? { background: tab === "portkey" ? CLR_BLUE + "22" : CLR_ORANGE + "22",
-                          color: tab === "portkey" ? CLR_BLUE : CLR_ORANGE,
-                          border: `1px solid ${tab === "portkey" ? CLR_BLUE + "40" : CLR_ORANGE + "40"}` }
-                      : { color: th.textMuted, border: "1px solid transparent" }
-                  }
-                >
-                  {tab === "portkey" ? "Portkey" : "Direct LLM"}
-                </button>
-              ))}
-            </div>
-
-            {/* Portkey fields */}
-            {configTab === "portkey" && (
-              <div className="flex flex-col gap-4">
-                <ConfigField
-                  label="API Base URL"
-                  value={draftConfig.portkey.baseUrl}
-                  onChange={(v) => setDraftConfig((p) => ({ ...p, portkey: { ...p.portkey, baseUrl: v } }))}
-                  placeholder="https://aigw.portkey.ai/v1"
-                />
-                <ConfigField
-                  label="x-portkey-api-key"
-                  value={draftConfig.portkey.apiKey}
-                  onChange={(v) => setDraftConfig((p) => ({ ...p, portkey: { ...p.portkey, apiKey: v } }))}
-                  placeholder="Your Portkey API key"
-                  type="password"
-                />
-                <ConfigField
-                  label="x-portkey-provider (optional)"
-                  value={draftConfig.portkey.provider}
-                  onChange={(v) => setDraftConfig((p) => ({ ...p, portkey: { ...p.portkey, provider: v } }))}
-                  placeholder="e.g. @gpt-4-1-mini"
-                />
-                <ConfigField
-                  label="Model"
-                  value={draftConfig.portkey.model}
-                  onChange={(v) => setDraftConfig((p) => ({ ...p, portkey: { ...p.portkey, model: v } }))}
-                  placeholder="gpt-4.1-mini"
-                />
-                <div className="rounded-lg px-3 py-2.5 text-xs font-mono" style={{ background: th.codeBg, color: th.codeText }}>
-                  <span style={{ color: th.codeLabel }}>POST </span>
-                  <span style={{ color: CLR_BLUE + "CC" }}>{draftConfig.portkey.baseUrl || "https://aigw.portkey.ai/v1"}/chat/completions</span>
-                </div>
-              </div>
-            )}
-
-            {/* Direct LLM fields */}
-            {configTab === "direct" && (
-              <div className="flex flex-col gap-4">
-                <ConfigField
-                  label="API URL"
-                  value={draftConfig.direct.baseUrl}
-                  onChange={(v) => setDraftConfig((p) => ({ ...p, direct: { ...p.direct, baseUrl: v } }))}
-                  placeholder="https://…/openai/v1/chat/completions"
-                />
-                <ConfigField
-                  label="Bearer Token"
-                  value={draftConfig.direct.bearerToken}
-                  onChange={(v) => setDraftConfig((p) => ({ ...p, direct: { ...p.direct, bearerToken: v } }))}
-                  placeholder="Your bearer token"
-                  type="password"
-                />
-                <ConfigField
-                  label="Model"
-                  value={draftConfig.direct.model}
-                  onChange={(v) => setDraftConfig((p) => ({ ...p, direct: { ...p.direct, model: v } }))}
-                  placeholder="gpt-4.1-mini"
-                />
-                <div className="rounded-lg px-3 py-2.5 text-xs font-mono" style={{ background: th.codeBg, color: th.codeText }}>
-                  <span style={{ color: th.codeLabel }}>POST </span>
-                  <span style={{ color: CLR_ORANGE + "CC" }}>{draftConfig.direct.baseUrl || "https://…/chat/completions"}</span>
-                </div>
-              </div>
-            )}
-
-            {saveError && (
-              <p className="text-xs mt-3" style={{ color: "#FF4D6A" }}>{saveError}</p>
-            )}
-
-            <div className="flex gap-3 mt-5 justify-end">
-              <button
-                onClick={() => setShowConfig(false)}
-                className="px-4 py-2 text-sm rounded-lg border transition-colors"
-                style={{ color: th.cancelText, borderColor: th.cardBorder }}
-              >
-                Cancel
-              </button>
-              <button
-                onClick={() => void saveConfig()}
-                disabled={configLoading}
-                className="px-4 py-2 text-sm font-semibold rounded-lg transition-opacity hover:opacity-90 disabled:opacity-50"
-                style={{ background: accentColor, color: "#0D0E12" }}
-              >
-                {configLoading ? "Saving…" : "Save"}
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-
       {/* Chat panel */}
       <div
         className="flex flex-col h-full rounded-2xl border shadow-2xl overflow-hidden"
@@ -580,17 +323,6 @@ export default function ChatPanel({ secured, onRawResponse }: {
           >
             {modelLabel}
           </span>
-          <button
-            onClick={openConfig}
-            className="ml-auto p-1.5 rounded-lg transition-colors"
-            style={{ color: th.textSecondary }}
-            onMouseEnter={(e) => { (e.currentTarget as HTMLButtonElement).style.color = accentColor; (e.currentTarget as HTMLButtonElement).style.background = th.cardBg; }}
-            onMouseLeave={(e) => { (e.currentTarget as HTMLButtonElement).style.color = th.textSecondary; (e.currentTarget as HTMLButtonElement).style.background = "transparent"; }}
-            title="Configure LLM settings"
-            aria-label="Configure LLM settings"
-          >
-            <GearIcon />
-          </button>
         </div>
 
         {/* Messages */}
@@ -633,6 +365,12 @@ export default function ChatPanel({ secured, onRawResponse }: {
                         background: "#FF4D6A0D",
                         border: "1px solid #FF4D6A25",
                         color: "#FF4D6A",
+                      }
+                    : msg.blocked
+                    ? {
+                        background: "#FF4D6A0D",
+                        border: "2px solid #FF4D6A80",
+                        color: th.msgAssistText,
                       }
                     : {
                         background: th.cardBg,
@@ -693,8 +431,8 @@ export default function ChatPanel({ secured, onRawResponse }: {
                 maxHeight: "120px",
                 lineHeight: "1.5",
               }}
-              onFocus={(e) => { e.target.style.borderColor = accentColor; }}
-              onBlur={(e) => { e.target.style.borderColor = th.cardBorder; }}
+              onFocus={(e) => { e.target.style.borderColor = accentColor; onInputFocus?.(); }}
+              onBlur={(e) => { e.target.style.borderColor = th.cardBorder; onInputBlur?.(); }}
             />
             <button
               onClick={() => void sendMessage()}
