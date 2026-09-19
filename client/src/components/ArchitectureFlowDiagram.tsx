@@ -871,10 +871,10 @@ export default function ArchitectureFlowDiagram() {
         {/* Header */}
         <div className="mb-6 text-center">
           <h1 className="font-bold mb-1 tracking-tight" style={{ color: th.titleColor, fontSize: "1.5625rem" }}>
-            Prisma AIRS AI Gateway Security Architecture
+            Prisma AIRS AI Gateway and Security Guardrails Demo
           </h1>
           <p className="text-sm" style={{ color: th.subtitleColor }}>
-            Interactive step-by-step data flow visualization
+            Interactive live demo with step-by-step data flow visualization
           </p>
         </div>
 
