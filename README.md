@@ -1,6 +1,6 @@
-# Prisma AIRS AI Gateway Demo
+# Prisma AIRS AI Gateway and Security Guardrails Demo
 
-Interactive step-by-step SVG visualization of the Prisma AIRS AI Security data flow, with a live RAG-backed AI chatbot that demonstrates secured vs. unsecured AI request paths.
+Interactive live demo with step-by-step SVG visualization of the Prisma AIRS AI Security data flow, with a live RAG-backed AI chatbot that demonstrates secured vs. unsecured AI request paths.
 
 ![Secured Scenario](docs/secured-scenario.png)
 
