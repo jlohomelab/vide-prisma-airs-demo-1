@@ -158,7 +158,7 @@ const securedNodes: NodeDef[] = [
   { id: "frontend", label: "Frontend", sublabel: "App UI", x: 240, y: 180, width: 110, height: 80, color: CLR_TEAL, icon: "frontend" },
   { id: "backend", label: "Backend", sublabel: "RAG", x: 420, y: 180, width: 110, height: 80, color: CLR_PURPLE, icon: "backend" },
   { id: "gateway", label: "AI Gateway", sublabel: "Prisma AIRS", x: 640, y: 180, width: 150, height: 80, color: CLR_BLUE, icon: "gateway" },
-  { id: "scm", label: "SCM", sublabel: "Policy Management", x: 570, y: 50, width: 150, height: 80, color: CLR_YELLOW, icon: "scm" },
+  { id: "scm", label: "SCM", sublabel: "Policy & Reporting", x: 570, y: 50, width: 150, height: 80, color: CLR_YELLOW, icon: "scm" },
   { id: "intercept", label: "Prisma AIRS API", sublabel: "Security Guardrails", x: 730, y: 50, width: 150, height: 80, color: CLR_BLUE, icon: "intercept" },
   { id: "llm", label: "LLM", sublabel: "Multi-Model", x: 900, y: 180, width: 110, height: 80, color: CLR_BLUE, icon: "llm" },
 ];
