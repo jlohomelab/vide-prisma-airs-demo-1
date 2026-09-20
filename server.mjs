@@ -75,11 +75,31 @@ function saveData(data) {
 }
 
 function loadConfig() {
+  let cfg;
   try {
-    return { ...DEFAULT_CHAT_CONFIG, ...JSON.parse(readFileSync(CONFIG_FILE, "utf-8")) };
+    cfg = { ...DEFAULT_CHAT_CONFIG, ...JSON.parse(readFileSync(CONFIG_FILE, "utf-8")) };
   } catch {
-    return { ...DEFAULT_CHAT_CONFIG };
+    cfg = { ...DEFAULT_CHAT_CONFIG };
   }
+  // Env vars (Azure Application Settings) take priority over the stored file.
+  // Non-sensitive values reuse the VITE_* names already defined in Azure.
+  // Sensitive keys use separate non-VITE_ names so they stay server-side only.
+  const e = process.env;
+  cfg.portkey = {
+    ...cfg.portkey,
+    ...(e.VITE_PORTKEY_BASE_URL   && { baseUrl:      e.VITE_PORTKEY_BASE_URL }),
+    ...(e.PORTKEY_API_KEY         && { apiKey:        e.PORTKEY_API_KEY }),
+    ...(e.VITE_PORTKEY_PROVIDER   && { provider:      e.VITE_PORTKEY_PROVIDER }),
+    ...(e.VITE_PORTKEY_MODEL      && { model:         e.VITE_PORTKEY_MODEL }),
+    ...(e.VITE_PORTKEY_SCM_REPORT_URL && { scmReportUrl: e.VITE_PORTKEY_SCM_REPORT_URL }),
+  };
+  cfg.direct = {
+    ...cfg.direct,
+    ...(e.VITE_DIRECT_BASE_URL && { baseUrl:     e.VITE_DIRECT_BASE_URL }),
+    ...(e.DIRECT_BEARER_TOKEN  && { bearerToken: e.DIRECT_BEARER_TOKEN }),
+    ...(e.VITE_DIRECT_MODEL    && { model:       e.VITE_DIRECT_MODEL }),
+  };
+  return cfg;
 }
 
 function saveConfig(cfg) {
