@@ -395,20 +395,34 @@ export default function ChatPanel({ secured, onRawResponse, onInputFocus, onInpu
         <div className="flex-1 overflow-y-auto p-4 flex flex-col gap-3 min-h-0">
           {messages.length === 0 && !isLoading && (
             <div className="flex-1 flex items-center justify-center h-full">
-              <div className="text-center select-none">
-                <div
-                  className="w-12 h-12 rounded-full flex items-center justify-center mx-auto mb-3 text-xl"
-                  style={{
-                    background: accentColor + "12",
-                    border: `1px solid ${accentColor}25`,
-                    color: accentColor,
-                  }}
-                >
-                  ✦
+              {!adminPassword ? (
+                <div className="text-center select-none px-6">
+                  <div
+                    className="w-12 h-12 rounded-full flex items-center justify-center mx-auto mb-3 text-xl"
+                    style={{ background: "#FF9500" + "15", border: "1px solid #FF950040", color: "#FF9500" }}
+                  >
+                    ⚙
+                  </div>
+                  <p className="text-sm leading-relaxed" style={{ color: th.textSecondary }}>
+                    {t("chat.noCredentials")}
+                  </p>
                 </div>
-                <p className="text-sm font-medium" style={{ color: th.textMuted }}>{t("chat.emptyTitle")}</p>
-                <p className="text-xs mt-0.5" style={{ color: th.textSecondary }}>{t("chat.emptySubtitle")}</p>
-              </div>
+              ) : (
+                <div className="text-center select-none">
+                  <div
+                    className="w-12 h-12 rounded-full flex items-center justify-center mx-auto mb-3 text-xl"
+                    style={{
+                      background: accentColor + "12",
+                      border: `1px solid ${accentColor}25`,
+                      color: accentColor,
+                    }}
+                  >
+                    ✦
+                  </div>
+                  <p className="text-sm font-medium" style={{ color: th.textMuted }}>{t("chat.emptyTitle")}</p>
+                  <p className="text-xs mt-0.5" style={{ color: th.textSecondary }}>{t("chat.emptySubtitle")}</p>
+                </div>
+              )}
             </div>
           )}
 
@@ -488,7 +502,8 @@ export default function ChatPanel({ secured, onRawResponse, onInputFocus, onInpu
               onKeyDown={handleKeyDown}
               placeholder={t("chat.placeholder")}
               rows={1}
-              className="flex-1 rounded-lg px-3 py-2 text-sm placeholder-gray-400 resize-none focus:outline-none transition-colors"
+              disabled={!adminPassword}
+              className="flex-1 rounded-lg px-3 py-2 text-sm placeholder-gray-400 resize-none focus:outline-none transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
               style={{
                 background: th.inputBg2,
                 border: `1px solid ${th.cardBorder}`,
@@ -502,7 +517,7 @@ export default function ChatPanel({ secured, onRawResponse, onInputFocus, onInpu
             />
             <button
               onClick={() => void sendMessage()}
-              disabled={!input.trim() || isLoading}
+              disabled={!input.trim() || isLoading || !adminPassword}
               className="rounded-lg p-2.5 flex items-center justify-center transition-opacity shrink-0 disabled:opacity-30 disabled:cursor-not-allowed"
               style={{ background: accentColor, color: "#0D0E12" }}
               aria-label={t("chat.sendLabel")}

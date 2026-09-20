@@ -69,6 +69,7 @@ const en = {
   "chat.serverUnreachable": "Knowledge base server is unreachable. Make sure the server is running (`npm run dev`).",
   "chat.noData": "Unable to access internal data.",
   "chat.noResponse": "(no response)",
+  "chat.noCredentials": "Please config and save your LLM and Portkey API settings before starting the demo.",
 
   // ── Security violation messages — prompt ───────────────────────────────────
   "violation.prompt.dlp": "Security violation detected — your query contains sensitive data.",
@@ -229,6 +230,7 @@ const zhTW: AllTranslations = {
   "chat.serverUnreachable": "知識庫伺服器無法連線。請確認伺服器正在運行（`npm run dev`）。",
   "chat.noData": "無法存取內部資料。",
   "chat.noResponse": "（無回應）",
+  "chat.noCredentials": "請先設定並儲存 LLM 和 Portkey API 設定，再開始示範。",
 
   // ── Security violation messages — prompt ───────────────────────────────────
   "violation.prompt.dlp": "安全違規——您的查詢包含敏感資料。",
@@ -377,6 +379,7 @@ const zhCN: AllTranslations = {
   "chat.serverUnreachable": "知识库服务器无法连接。请确认服务器正在运行（`npm run dev`）。",
   "chat.noData": "无法访问内部数据。",
   "chat.noResponse": "（无响应）",
+  "chat.noCredentials": "请先配置并保存 LLM 和 Portkey API 设置，再开始演示。",
 
   // ── Security violation messages — prompt ───────────────────────────────────
   "violation.prompt.dlp": "安全违规——您的查询包含敏感数据。",
