@@ -323,6 +323,16 @@ export default function ChatPanel({ secured, onRawResponse, onInputFocus, onInpu
           >
             {modelLabel}
           </span>
+          {messages.length > 0 && (
+            <button
+              onClick={() => setMessages([])}
+              className="ml-auto text-[10px] px-2 py-0.5 rounded transition-opacity opacity-50 hover:opacity-100"
+              style={{ color: th.textMuted, border: `1px solid ${th.cardBorder}` }}
+              title="Clear chat"
+            >
+              Clear
+            </button>
+          )}
         </div>
 
         {/* Messages */}
