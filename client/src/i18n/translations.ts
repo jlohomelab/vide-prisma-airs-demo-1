@@ -324,9 +324,9 @@ const zhTW: AllTranslations = {
   "json.keys": "個鍵",
 
   // ── Attack simulation labels ───────────────────────────────────────────────
-  "attack.promptInjection": "提示注入攻擊",
-  "attack.sensitiveData": "敏感資料擷取",
-  "attack.maliciousUrl": "回應中的惡意 URL",
+  "attack.promptInjection": " 提示注入攻擊 ",
+  "attack.sensitiveData": "  敏感資料擷取攻擊  ",
+  "attack.maliciousUrl": "   回應中含有惡意URL   ",
 };
 
 const zhCN: AllTranslations = {
@@ -478,9 +478,9 @@ const zhCN: AllTranslations = {
   "json.keys": "个键",
 
   // ── Attack simulation labels ───────────────────────────────────────────────
-  "attack.promptInjection": "提示注入攻击",
-  "attack.sensitiveData": "敏感数据检索",
-  "attack.maliciousUrl": "响应中的恶意 URL",
+  "attack.promptInjection": " 提示注入攻击 ",
+  "attack.sensitiveData": "  敏感数据检索攻击  ",
+  "attack.maliciousUrl": "   响应中含有恶意URL   ",
 };
 
 export const TRANSLATIONS: Record<"en" | "zh-TW" | "zh-CN", AllTranslations> = {

@@ -345,7 +345,7 @@ export default function ArchitectureFlowDiagram() {
 
   return (
     <div className="min-h-screen bg-[#0D0E12] flex flex-col items-center justify-center p-8 font-[Inter,system-ui,sans-serif]">
-      <div className="w-full max-w-[1100px]">
+      <div className="w-full max-w-[1600px]">
         <div className="mb-8 text-center">
           <h1 className="text-3xl font-bold text-white mb-2 tracking-tight">
             Prisma AIRS AI Gateway and Security Guardrails Demo
@@ -399,7 +399,7 @@ export default function ArchitectureFlowDiagram() {
         >
           <svg
             ref={svgRef}
-            viewBox="0 0 1080 340"
+            viewBox="0 0 1080 350"
             className="w-full h-auto"
             style={{ minHeight: 280 }}
           >
