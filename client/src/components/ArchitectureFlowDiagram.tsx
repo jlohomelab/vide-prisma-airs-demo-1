@@ -199,7 +199,7 @@ const securedSteps: StepDef[] = [
       "badge.securityGuardrails",
       "badge.dlpMalwareScanning",
     ],
-    holdMs: 2000,
+    holdMs: 1000,
   },
   {
     activeNodes: ["backend","gateway", "scm"],
@@ -211,7 +211,7 @@ const securedSteps: StepDef[] = [
       "badge.budgetTokenLimits",
       "badge.observability",
     ],
-    holdMs: 2000,
+    holdMs: 1000,
   },
   {
     activeNodes: ["gateway", "llm"],
@@ -223,7 +223,7 @@ const securedSteps: StepDef[] = [
       "badge.dlpMalwareScanning",
       "badge.combined",
     ],
-    holdMs: 5000,
+    holdMs: 3000,
   },
 ];
 
@@ -782,19 +782,7 @@ export default function ArchitectureFlowDiagram() {
     clearChatTimer();
     setCurrentStep(3); // stop diagram at guardrails step
     setAutoplay(false);
-    // Response walks back from gateway (skip resp0 = gateway→LLM, never reached)
-    const seq: ChatPhase[] = ["resp1", "resp2", "resp3", "endpoint"];
-    let i = 0;
-    const advance = () => {
-      setChatPhase(seq[i]);
-      i++;
-      if (i < seq.length) {
-        chatPhaseTimer.current = setTimeout(advance, 100);
-      } else {
-        chatPhaseTimer.current = setTimeout(() => setChatPhase("idle"), 5000);
-      }
-    };
-    advance();
+    setChatPhase("idle"); // show step 3 node highlights immediately
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Clean up timer on unmount
