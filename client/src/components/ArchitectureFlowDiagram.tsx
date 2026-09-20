@@ -650,6 +650,17 @@ export default function ArchitectureFlowDiagram() {
     (import.meta.env.VITE_PORTKEY_SCM_REPORT_URL as string | undefined) ?? ""
   );
 
+  // Load scmReportUrl from server config on mount so it survives page reloads.
+  // Falls back to the VITE_ build-time value if not available.
+  useEffect(() => {
+    const token = localStorage.getItem("chat-admin-password");
+    if (!token) return;
+    fetch("/api/config", { headers: { "x-admin-password": token } })
+      .then(r => r.ok ? r.json() as Promise<{ portkey?: { scmReportUrl?: string } }> : null)
+      .then(cfg => { if (cfg?.portkey?.scmReportUrl) setScmUrlTemplate(cfg.portkey.scmReportUrl); })
+      .catch(() => {});
+  }, []);
+
   const nodes = secured ? securedNodes : unsecuredNodes;
   const edges = secured ? securedEdges : unsecuredEdges;
   const steps = secured ? securedSteps : unsecuredSteps;
