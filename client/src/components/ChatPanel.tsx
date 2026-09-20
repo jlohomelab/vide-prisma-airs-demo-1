@@ -108,7 +108,7 @@ async function fetchConfig(password: string): Promise<ChatConfig> {
 
 const PROMPT_VIOLATION_KEYS: Record<string, TranslationKey> = {
   dlp:             "violation.prompt.dlp",
-  agent:           "violation.prompt.agent",
+//  agent:           "violation.prompt.agent",
   injection:       "violation.prompt.injection",
   malicious_code:  "violation.prompt.maliciousCode",
   topic_violation: "violation.prompt.topicViolation",
@@ -177,13 +177,14 @@ function SendIcon(): JSX.Element {
   );
 }
 
-export default function ChatPanel({ secured, onRawResponse, onInputFocus, onInputBlur, onSend, onResponse }: {
+export default function ChatPanel({ secured, onRawResponse, onInputFocus, onInputBlur, onSend, onResponse, onBlocked }: {
   secured: boolean;
   onRawResponse?: (data: unknown) => void;
   onInputFocus?: () => void;
   onInputBlur?: () => void;
   onSend?: () => void;
   onResponse?: () => void;
+  onBlocked?: () => void;
 }): JSX.Element {
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState("");
@@ -222,6 +223,7 @@ export default function ChatPanel({ secured, onRawResponse, onInputFocus, onInpu
     if (!text || isLoading) return;
     onRawResponse?.(null);
     onSend?.();
+    let wasBlocked = false;
 
     const userMsg: Message = { role: "user", content: text };
     const history = [...messages, userMsg];
@@ -325,6 +327,7 @@ export default function ChatPanel({ secured, onRawResponse, onInputFocus, onInpu
         throw new Error(`HTTP ${res.status}: ${rawText.slice(0, 300)}`);
       }
 
+      wasBlocked = blocked;
       const content = blocked
         ? extractViolationMessage(data.hook_results, t)
         : (data.choices?.[0]?.message?.content ?? t("chat.noResponse"));
@@ -335,7 +338,7 @@ export default function ChatPanel({ secured, onRawResponse, onInputFocus, onInpu
       setMessages((prev) => [...prev, { role: "assistant", content: msg, error: true }]);
     } finally {
       setIsLoading(false);
-      onResponse?.();
+      if (wasBlocked) { onBlocked?.(); } else { onResponse?.(); }
     }
   };
 

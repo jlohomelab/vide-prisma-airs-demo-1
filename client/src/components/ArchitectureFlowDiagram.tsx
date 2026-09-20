@@ -778,6 +778,25 @@ export default function ArchitectureFlowDiagram() {
     advance();
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
+  const handleChatBlocked = useCallback(() => {
+    clearChatTimer();
+    setCurrentStep(3); // stop diagram at guardrails step
+    setAutoplay(false);
+    // Response walks back from gateway (skip resp0 = gateway→LLM, never reached)
+    const seq: ChatPhase[] = ["resp1", "resp2", "resp3", "endpoint"];
+    let i = 0;
+    const advance = () => {
+      setChatPhase(seq[i]);
+      i++;
+      if (i < seq.length) {
+        chatPhaseTimer.current = setTimeout(advance, 100);
+      } else {
+        chatPhaseTimer.current = setTimeout(() => setChatPhase("idle"), 5000);
+      }
+    };
+    advance();
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+
   // Clean up timer on unmount
   useEffect(() => () => clearChatTimer(), []); // eslint-disable-line react-hooks/exhaustive-deps
 
@@ -870,7 +889,7 @@ export default function ArchitectureFlowDiagram() {
   return (
     <ThemeContext.Provider value={{ darkMode, toggleTheme: () => setDarkMode((d) => !d) }}>
     <div
-      className="min-h-screen flex flex-row items-start p-6 pt-[30px] gap-4 font-[Inter,system-ui,sans-serif]"
+      className="min-h-screen flex flex-row items-start p-6 pt-[50px] gap-4 font-[Inter,system-ui,sans-serif]"
       style={{ backgroundColor: th.appBg }}
     >
       {/* Left: diagram content */}
@@ -1115,6 +1134,7 @@ export default function ArchitectureFlowDiagram() {
             onInputBlur={handleChatBlur}
             onSend={handleChatSend}
             onResponse={handleChatResponse}
+            onBlocked={handleChatBlocked}
           />
         </div>
 
