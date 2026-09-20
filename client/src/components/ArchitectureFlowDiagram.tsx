@@ -3,6 +3,8 @@ import ChatPanel from "./ChatPanel";
 import AdminPage from "./AdminPage";
 import JsonTree from "./JsonTree";
 import { ThemeContext, useTheme } from "../contexts/ThemeContext";
+import { useLanguage, LANGS, LANG_LABELS, type Lang } from "../contexts/LanguageContext";
+import type { TranslationKey } from "../i18n/translations";
 
 // ---------------------------------------------------------------------------
 // Types
@@ -125,31 +127,27 @@ const unsecuredSteps: StepDef[] = [
   {
     activeNodes: ["endpoint"],
     activeEdges: ["endpoint"],
-    title: "Step 0 — Attacker Endpoint",
-    description:
-      "Pontentially malicious user sends a prompt request through the application endpoint to the frontend interface.",
+    title: "step.0.title",
+    description: "step.0.desc",
   },
   {
     activeNodes: ["endpoint", "frontend"],
     activeEdges: ["endpoint-frontend"],
-    title: "Step 1 — Sending Request",
-    description:
-      "Attacker sends a prompt request through the application endpoint to the frontend interface.",
+    title: "step.1.title",
+    description: "step.1.desc",
   },
   {
     activeNodes: ["frontend", "backend"],
     activeEdges: ["frontend-backend"],
-    title: "Step 2 — RAG Data Retrieval",
-    description:
-      "Frontend forwards the request to the backend, which performs Retrieval-Augmented Generation to gather relevant context data.",
+    title: "step.2.title",
+    description: "step.2.desc",
   },
   {
     activeNodes: ["backend", "llm"],
     activeEdges: ["backend-llm"],
-    title: "Step 3 — Unprotected LLM Access",
-    description:
-      "Backend sends the prompt directly to the LLM with no security inspection — leaving the system exposed to critical AI threats.",
-    risks: ["Prompt Injection", "Model Evasion","Sensitive Data Leakage", ],
+    title: "step.unsecured.3.title",
+    description: "step.unsecured.3.desc",
+    risks: ["risk.promptInjection", "risk.dataLeakage", "risk.modelEvasion"],
     holdMs: 5000,
   },
 ];
@@ -177,59 +175,53 @@ const securedSteps: StepDef[] = [
   {
     activeNodes: ["endpoint"],
     activeEdges: ["endpoint"],
-    title: "Step 0 — Attacker Endpoint",
-    description:
-      "Pontentially malicious user sends a prompt request through the application endpoint to the frontend interface.",
+    title: "step.0.title",
+    description: "step.0.desc",
   },
   {
     activeNodes: ["endpoint", "frontend"],
     activeEdges: ["endpoint-frontend"],
-    title: "Step 1 — Sending Request",
-    description:
-      "Attacker sends a prompt request through the application endpoint to the frontend interface.",
+    title: "step.1.title",
+    description: "step.1.desc",
   },
   {
     activeNodes: ["frontend", "backend"],
     activeEdges: ["frontend-backend"],
-    title: "Step 2 — RAG Data Retrieval",
-    description:
-      "Frontend forwards the request to the backend, which performs Retrieval-Augmented Generation to gather relevant context data.",
+    title: "step.2.title",
+    description: "step.2.desc",
   },
   {
     activeNodes: ["backend", "gateway", "intercept"],
     activeEdges: ["backend-gateway", "gateway-intercept"],
-    title: "Step 3 — Security Guardrails, DLP and Malware Scanning",
-    description:
-      "AIRS API performs real-time Security Guardrails, DLP and malware scanning on the request payload before it reaches any LLM.",
+    title: "step.secured.3.title",
+    description: "step.secured.3.desc",
     gatewayBadges: [
-      "Security Guardrails",
-      "DLP / Malware Scanning",
+      "badge.securityGuardrails",
+      "badge.dlpMalwareScanning",
     ],
     holdMs: 2000,
   },
   {
     activeNodes: ["backend","gateway", "scm"],
     activeEdges: ["backend-gateway","gateway-scm"],
-    title: "Step 4 — LLM Routing and Metering",
-    description:
-      "The Prisma AIRS AI Gateway routes the request to the optimal LLM based on policy, load balancing, and budget / token limits.",
+    title: "step.secured.4.title",
+    description: "step.secured.4.desc",
     gatewayBadges: [
-      "Load Balancing",
-      "Budget / Token Limits",
-      "Observability",
+      "badge.loadBalancing",
+      "badge.budgetTokenLimits",
+      "badge.observability",
     ],
     holdMs: 2000,
   },
   {
     activeNodes: ["gateway", "llm"],
     activeEdges: ["gateway-llm"],
-    title: "Step 5 — Secure LLM Distribution",
-    description:
-      "After passing all security checks, the Prisma AIRS AI Gateway routes the sanitized request to the optimal LLM with full observability and guardrails.",
+    title: "step.secured.5.title",
+    description: "step.secured.5.desc",
     gatewayBadges: [
-      "Security Guardrails",
-      "DLP / Malware Scanning",
-      "Load Balancing | Budget/Token Limits | Observability",
+      "badge.securityGuardrails",
+      "badge.dlpMalwareScanning",
+      "badge.combined",
     ],
     holdMs: 5000,
   },
@@ -448,17 +440,18 @@ function FlowNode({
 // ---------------------------------------------------------------------------
 // Risk callout badges (unsecured final step)
 // ---------------------------------------------------------------------------
-function RiskBadges({ node }: { node: NodeDef; risks: string[] }) {
-  const risks = ["Prompt Injection", "Data Leakage", "Model Evasion"];
+function RiskBadges({ node, risks }: { node: NodeDef; risks: string[] }) {
+  const { t } = useLanguage();
   const cx = node.x + node.width / 2;
   const baseY = node.y + node.height + 14;
   return (
     <g>
-      {risks.map((label, i) => {
+      {risks.map((riskKey, i) => {
+        const label = t(riskKey as TranslationKey);
         const w = label.length * 6.5 + 50;
         const y = baseY + i * 26;
         return (
-          <g key={label}>
+          <g key={riskKey}>
             <rect
               x={cx - w / 2}
               y={y}
@@ -506,15 +499,17 @@ function GatewayBadges({
   node: NodeDef;
   badges: string[];
 }) {
+  const { t } = useLanguage();
   const cx = node.x + node.width / 2;
   const baseY = node.y + node.height + 14;
   return (
     <g>
-      {badges.map((label, i) => {
+      {badges.map((badgeKey, i) => {
+        const label = t(badgeKey as TranslationKey);
         const w = label.length * 6 + 60;
         const y = baseY + i * 24;
         return (
-          <g key={label}>
+          <g key={badgeKey}>
             <rect
               x={cx - w / 2}
               y={y}
@@ -638,6 +633,7 @@ type ChatPhase =
   | "resp0" | "resp1" | "resp2" | "resp3" | "endpoint";
 
 export default function ArchitectureFlowDiagram() {
+  const { t, lang, setLang } = useLanguage();
   const [darkMode, setDarkMode] = useState(true);
   const [secured, setSecured] = useState(false);
   const [rawResponse, setRawResponse] = useState<unknown>(null);
@@ -883,10 +879,10 @@ export default function ArchitectureFlowDiagram() {
         {/* Header */}
         <div className="mb-6 text-center">
           <h1 className="font-bold mb-1 tracking-tight" style={{ color: th.titleColor, fontSize: "1.5625rem" }}>
-            Prisma AIRS AI Gateway and Security Guardrails Demo
+            {t("diagram.title")}
           </h1>
           <p className="text-sm" style={{ color: th.subtitleColor }}>
-            Interactive live demo with step-by-step data flow visualization
+            {t("diagram.subtitle")}
           </p>
         </div>
 
@@ -896,13 +892,13 @@ export default function ArchitectureFlowDiagram() {
             className="text-sm font-medium transition-colors duration-300"
             style={{ color: !secured ? CLR_ORANGE : "#6B7280" }}
           >
-            Unsecured
+            {t("diagram.unsecured")}
           </span>
           <button
             onClick={handleToggle}
             className="relative w-14 h-7 rounded-full transition-colors duration-300 focus:outline-none focus:ring-2 focus:ring-offset-2"
             style={{ backgroundColor: secured ? CLR_BLUE : "#3B3E4A" }}
-            aria-label={`Switch to ${secured ? "unsecured" : "secured"} flow`}
+            aria-label={t("diagram.switchTo", { mode: t(secured ? "diagram.unsecured" : "diagram.secured") })}
           >
             <span
               className="absolute top-0.5 left-0.5 w-6 h-6 rounded-full bg-white shadow-md transition-transform duration-300"
@@ -913,7 +909,7 @@ export default function ArchitectureFlowDiagram() {
             className="text-sm font-medium transition-colors duration-300"
             style={{ color: secured ? CLR_BLUE : "#6B7280" }}
           >
-            Secured
+            {t("diagram.secured")}
           </span>
         </div>
 
@@ -929,14 +925,14 @@ export default function ArchitectureFlowDiagram() {
               background: accentColor + "10",
             }}
           >
-            Previous Step
+            {t("diagram.prevStep")}
           </button>
           <button
             onClick={resetStep}
             className="px-4 py-1.5 text-xs font-semibold rounded-lg border transition-all duration-200"
             style={{ borderColor: th.controlBorder, color: th.controlText, background: th.controlBg }}
           >
-            Reset
+            {t("diagram.reset")}
           </button>
           <button
             onClick={nextStep}
@@ -948,7 +944,7 @@ export default function ArchitectureFlowDiagram() {
               background: accentColor,
             }}
           >
-            Next Step
+            {t("diagram.nextStep")}
           </button>
 
           <div className="w-px h-5 mx-1" style={{ backgroundColor: th.dividerBg }} />
@@ -966,7 +962,7 @@ export default function ArchitectureFlowDiagram() {
               className="inline-block w-1.5 h-1.5 rounded-full transition-colors duration-200"
               style={{ backgroundColor: autoplay ? "#22C55E" : th.controlText }}
             />
-            {autoplay ? "Auto-playing" : "Auto-play"}
+            {autoplay ? t("diagram.autoPlaying") : t("diagram.autoPlay")}
           </button>
         </div>
 
@@ -1080,10 +1076,10 @@ export default function ArchitectureFlowDiagram() {
               className="text-sm font-bold mb-1"
               style={{ color: accentColor }}
             >
-              {step.title}
+              {t(step.title as TranslationKey)}
             </div>
             <div className="text-xs leading-relaxed" style={{ color: th.stepDescText }}>
-              {step.description}
+              {t(step.description as TranslationKey)}
             </div>
           </div>
         </div>
@@ -1135,7 +1131,7 @@ export default function ArchitectureFlowDiagram() {
             <div className="w-1.5 h-1.5 rounded-full shrink-0"
               style={{ background: secured ? CLR_BLUE : CLR_ORANGE }} />
             <span className="text-xs font-semibold" style={{ color: rp.text }}>
-              API Response
+              {t("diagram.apiResponse")}
             </span>
             <div className="ml-auto flex items-center gap-2">
               {scmUrl && (
@@ -1146,7 +1142,7 @@ export default function ArchitectureFlowDiagram() {
                   className="text-[10px] px-2 py-0.5 rounded font-semibold transition-opacity hover:opacity-80"
                   style={{ background: CLR_BLUE + "22", color: CLR_BLUE, border: `1px solid ${CLR_BLUE}40` }}
                 >
-                  View Guardrails Report ↗
+                  {t("diagram.viewReport")}
                 </a>
               )}
               {!!rawResponse && (
@@ -1165,14 +1161,16 @@ export default function ArchitectureFlowDiagram() {
             ) : (
               <div className="flex h-full items-center justify-center">
                 <p className="text-xs text-center select-none" style={{ color: rp.muted }}>
-                  Response will appear here<br />after sending a message
+                  {t("diagram.responsePlaceholder").split("\n").map((line, i) => (
+                    <span key={i}>{line}{i === 0 && <br />}</span>
+                  ))}
                 </p>
               </div>
             )}
           </div>
         </div>
       </div>
-      {/* Theme toggle — fixed bottom-left, to the left of the Admin button */}
+      {/* Theme toggle — fixed bottom-left */}
       <button
         onClick={() => setDarkMode((d) => !d)}
         className="fixed bottom-4 left-4 z-40 flex items-center gap-2 px-3 py-2 rounded-xl border text-xs font-semibold transition-all shadow-lg"
@@ -1189,11 +1187,35 @@ export default function ArchitectureFlowDiagram() {
           e.currentTarget.style.borderColor = th.controlBorder;
           e.currentTarget.style.color = th.controlText;
         }}
-        title={darkMode ? "Switch to light mode" : "Switch to dark mode"}
+        title={darkMode ? t("diagram.switchToDark") : t("diagram.switchToLight")}
       >
         {darkMode ? <SunIcon /> : <MoonIcon />}
       </button>
-      {/* Admin panel — renders its own fixed-position trigger button */}
+      {/* Language switcher — fixed bottom, between theme toggle and admin */}
+      <button
+        onClick={() => {
+          const idx = LANGS.indexOf(lang);
+          setLang(LANGS[(idx + 1) % LANGS.length] as Lang);
+        }}
+        className="fixed bottom-4 left-[60px] z-40 flex items-center px-3 py-2 rounded-xl border text-xs font-semibold transition-all shadow-lg"
+        style={{
+          background: darkMode ? "#0F1015" : "#FFFFFF",
+          borderColor: th.controlBorder,
+          color: th.controlText,
+        }}
+        onMouseEnter={(e) => {
+          e.currentTarget.style.borderColor = CLR_BLUE + "80";
+          e.currentTarget.style.color = CLR_BLUE;
+        }}
+        onMouseLeave={(e) => {
+          e.currentTarget.style.borderColor = th.controlBorder;
+          e.currentTarget.style.color = th.controlText;
+        }}
+        title={t("diagram.langLabel")}
+      >
+        {LANG_LABELS[lang]}
+      </button>
+      {/* Admin panel — renders its own fixed-position trigger button (left-28) */}
       <AdminPage onScmReportUrl={setScmUrlTemplate} />
     </div>
     </ThemeContext.Provider>

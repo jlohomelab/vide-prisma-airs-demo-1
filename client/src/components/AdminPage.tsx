@@ -1,6 +1,7 @@
 import { type JSX, useEffect, useRef, useState } from "react";
 import { deleteDoc, loadRagDocs, saveDoc, type RagDoc } from "../utils/rag";
 import { useTheme } from "../contexts/ThemeContext";
+import { useLanguage } from "../contexts/LanguageContext";
 
 const CLR_BLUE = "#4FC3F7";
 const CLR_ORANGE = "#FF6B2B";
@@ -232,6 +233,7 @@ export default function AdminPage({ onScmReportUrl }: {
 }): JSX.Element {
   const { darkMode } = useTheme();
   const th = buildAdminTheme(darkMode);
+  const { t } = useLanguage();
 
   const [open, setOpen] = useState(false);
   const [authed, setAuthed] = useState(false);
@@ -308,7 +310,7 @@ export default function AdminPage({ onScmReportUrl }: {
 
   async function handleLogin() {
     if (!loginUsername || !loginPassword) {
-      setLoginError("Username and password are required");
+      setLoginError(t("error.usernamePasswordRequired"));
       return;
     }
     setLoginLoading(true);
@@ -321,7 +323,7 @@ export default function AdminPage({ onScmReportUrl }: {
       });
       const json = await res.json() as { token?: string; error?: string };
       if (!res.ok) {
-        setLoginError(json.error ?? "Invalid credentials");
+        setLoginError(json.error ?? t("error.invalidCredentials"));
         return;
       }
       const token = json.token ?? "";
@@ -329,7 +331,7 @@ export default function AdminPage({ onScmReportUrl }: {
       setAdminToken(token);
       setAuthed(true);
     } catch {
-      setLoginError("Network error — check server is running");
+      setLoginError(t("error.networkErrorServer"));
     } finally {
       setLoginLoading(false);
     }
@@ -370,7 +372,7 @@ export default function AdminPage({ onScmReportUrl }: {
       setDraftConfig(cfg);
     } catch (e) {
       const msg = e instanceof Error ? e.message : "Failed to load config";
-      setConfigError(msg === "401" ? "Wrong admin password" : `Load failed: ${msg}`);
+      setConfigError(msg === "401" ? t("admin.wrongPassword") : t("admin.loadFailed", { msg }));
     } finally {
       setConfigLoading(false);
     }
@@ -427,7 +429,7 @@ export default function AdminPage({ onScmReportUrl }: {
 
   async function handleDeleteDoc() {
     if (!selectedPath) return;
-    if (!confirm(`Delete "${editTitle}"? This cannot be undone.`)) return;
+    if (!confirm(t("admin.confirmDelete", { title: editTitle }))) return;
     await deleteDoc(selectedPath, adminToken);
     await reloadDocs();
     setSelectedPath(null);
@@ -472,7 +474,7 @@ export default function AdminPage({ onScmReportUrl }: {
 
   async function handleAddUser() {
     if (!newUserEmail || !newUserPassword) {
-      setUserError("Email and password are required");
+      setUserError(t("error.emailPasswordRequired"));
       return;
     }
     setUserLoading(true);
@@ -484,19 +486,19 @@ export default function AdminPage({ onScmReportUrl }: {
         body: JSON.stringify({ username: newUserEmail, password: newUserPassword }),
       });
       const json = await res.json() as { ok?: boolean; error?: string };
-      if (!res.ok) { setUserError(json.error ?? "Failed to add user"); return; }
+      if (!res.ok) { setUserError(json.error ?? t("error.failedToAddUser")); return; }
       setNewUserEmail("");
       setNewUserPassword("");
       await reloadUsers();
     } catch {
-      setUserError("Network error");
+      setUserError(t("error.networkError"));
     } finally {
       setUserLoading(false);
     }
   }
 
   async function handleDeleteUser(username: string) {
-    if (!confirm(`Remove user "${username}"?`)) return;
+    if (!confirm(t("admin.confirmRemoveUser", { username }))) return;
     try {
       await fetch(`/api/users/${encodeURIComponent(username)}`, {
         method: "DELETE",
@@ -509,7 +511,7 @@ export default function AdminPage({ onScmReportUrl }: {
   }
 
   async function handleChangePassword(username: string) {
-    if (!changePwValue) { setChangePwError("New password is required"); return; }
+    if (!changePwValue) { setChangePwError(t("error.newPasswordRequired")); return; }
     setChangePwLoading(true);
     setChangePwError(null);
     try {
@@ -519,11 +521,11 @@ export default function AdminPage({ onScmReportUrl }: {
         body: JSON.stringify({ password: changePwValue }),
       });
       const json = await res.json() as { ok?: boolean; error?: string };
-      if (!res.ok) { setChangePwError(json.error ?? "Failed to change password"); return; }
+      if (!res.ok) { setChangePwError(json.error ?? t("error.failedToChangePassword")); return; }
       setChangePwUser(null);
       setChangePwValue("");
     } catch {
-      setChangePwError("Network error");
+      setChangePwError(t("error.networkError"));
     } finally {
       setChangePwLoading(false);
     }
@@ -542,7 +544,7 @@ export default function AdminPage({ onScmReportUrl }: {
       {/* Trigger button */}
       <button
         onClick={() => setOpen(true)}
-        className="fixed bottom-4 left-16 z-40 flex items-center gap-2 px-3 py-2 rounded-xl border text-xs font-semibold transition-all shadow-lg"
+        className="fixed bottom-4 left-28 z-40 flex items-center gap-2 px-3 py-2 rounded-xl border text-xs font-semibold transition-all shadow-lg"
         style={{
           background: th.headerBg,
           borderColor: th.cardBorder,
@@ -556,10 +558,10 @@ export default function AdminPage({ onScmReportUrl }: {
           e.currentTarget.style.borderColor = th.cardBorder;
           e.currentTarget.style.color = th.textMuted;
         }}
-        title="Open Admin Console"
+        title={t("admin.buttonTitle")}
       >
         <LockIcon />
-        Admin
+        {t("admin.button")}
       </button>
 
       {/* Modal overlay */}
@@ -586,15 +588,15 @@ export default function AdminPage({ onScmReportUrl }: {
                 >
                   <LockIcon />
                 </div>
-                <h2 className="font-bold text-lg mb-1" style={{ color: th.textPrimary }}>Admin Console</h2>
-                <p className="text-xs mb-6" style={{ color: th.textMuted }}>Sign in to manage settings</p>
+                <h2 className="font-bold text-lg mb-1" style={{ color: th.textPrimary }}>{t("admin.consoleTitle")}</h2>
+                <p className="text-xs mb-6" style={{ color: th.textMuted }}>{t("admin.loginSubtitle")}</p>
                 <div className="w-full max-w-xs flex flex-col gap-3">
                   <input
                     type="text"
                     value={loginUsername}
                     onChange={(e) => { setLoginUsername(e.target.value); setLoginError(null); }}
                     onKeyDown={(e) => e.key === "Enter" && void handleLogin()}
-                    placeholder="Username"
+                    placeholder={t("admin.usernamePlaceholder")}
                     autoFocus
                     className="w-full rounded-lg px-4 py-2.5 text-sm placeholder-gray-500 focus:outline-none transition-colors"
                     style={{ ...inputBase, borderColor: loginError ? "#FF4D6A" : th.cardBorder }}
@@ -606,7 +608,7 @@ export default function AdminPage({ onScmReportUrl }: {
                     value={loginPassword}
                     onChange={(e) => { setLoginPassword(e.target.value); setLoginError(null); }}
                     onKeyDown={(e) => e.key === "Enter" && void handleLogin()}
-                    placeholder="Password"
+                    placeholder={t("admin.passwordPlaceholder")}
                     className="w-full rounded-lg px-4 py-2.5 text-sm placeholder-gray-500 focus:outline-none transition-colors"
                     style={{ ...inputBase, borderColor: loginError ? "#FF4D6A" : th.cardBorder }}
                     onFocus={(e) => { if (!loginError) e.target.style.borderColor = CLR_BLUE; }}
@@ -621,14 +623,14 @@ export default function AdminPage({ onScmReportUrl }: {
                     className="w-full py-2.5 rounded-lg text-sm font-semibold transition-opacity hover:opacity-90 disabled:opacity-50"
                     style={{ background: CLR_ORANGE, color: "#fff" }}
                   >
-                    {loginLoading ? "Signing in…" : "Sign In"}
+                    {loginLoading ? t("admin.signingIn") : t("admin.signIn")}
                   </button>
                   <button
                     onClick={handleClose}
                     className="w-full py-2 rounded-lg text-xs transition-colors"
                     style={{ color: th.textMuted }}
                   >
-                    Cancel
+                    {t("admin.cancel")}
                   </button>
                 </div>
               </div>
@@ -639,18 +641,18 @@ export default function AdminPage({ onScmReportUrl }: {
                   className="flex items-center px-5 py-3 border-b shrink-0 gap-3"
                   style={{ borderColor: th.cardBorder, background: th.headerBg }}
                 >
-                  <span className="text-sm font-bold" style={{ color: th.textPrimary }}>Admin Console</span>
+                  <span className="text-sm font-bold" style={{ color: th.textPrimary }}>{t("admin.consoleTitle")}</span>
                   <span
                     className="text-[10px] px-2 py-0.5 rounded-full"
                     style={{ background: CLR_TEAL + "18", color: CLR_TEAL }}
                   >
-                    Authenticated
+                    {t("admin.authenticated")}
                   </span>
 
                   {/* Tab bar */}
                   <div className="flex gap-1 ml-4 p-1 rounded-lg" style={{ background: th.tabsBg }}>
                     {(["chat", "kb", "users"] as const).map((tab) => {
-                      const labels = { chat: "Chat Settings", kb: "Knowledge Base", users: "Users" };
+                      const labels = { chat: t("admin.tabs.chatSettings"), kb: t("admin.tabs.kb"), users: t("admin.tabs.users") };
                       const colors = { chat: CLR_BLUE, kb: CLR_ORANGE, users: CLR_TEAL };
                       return (
                         <button
@@ -677,7 +679,7 @@ export default function AdminPage({ onScmReportUrl }: {
                       onMouseEnter={(e) => { e.currentTarget.style.color = "#FF4D6A"; e.currentTarget.style.borderColor = "#FF4D6A40"; }}
                       onMouseLeave={(e) => { e.currentTarget.style.color = th.textMuted; e.currentTarget.style.borderColor = th.cardBorder; }}
                     >
-                      Logout
+                      {t("admin.logout")}
                     </button>
                     <button
                       onClick={handleClose}
@@ -718,7 +720,7 @@ export default function AdminPage({ onScmReportUrl }: {
                                 : { color: th.textMuted, border: "1px solid transparent" }
                             }
                           >
-                            {tab === "portkey" ? "Portkey" : "Direct LLM"}
+                            {tab === "portkey" ? t("admin.portkey") : t("admin.directLlm")}
                           </button>
                         ))}
                       </div>
@@ -769,7 +771,7 @@ export default function AdminPage({ onScmReportUrl }: {
                       )}
 
                       {saveError && <p className="text-xs mt-4" style={{ color: "#FF4D6A" }}>{saveError}</p>}
-                      {saveDone && <p className="text-xs mt-4" style={{ color: CLR_TEAL }}>Config saved.</p>}
+                      {saveDone && <p className="text-xs mt-4" style={{ color: CLR_TEAL }}>{t("admin.configSaved")}</p>}
 
                       <div className="flex gap-3 mt-6 justify-end">
                         <button
@@ -778,7 +780,7 @@ export default function AdminPage({ onScmReportUrl }: {
                           className="px-4 py-2 text-sm rounded-lg border transition-colors disabled:opacity-40"
                           style={{ color: CLR_BLUE, borderColor: th.cardBorder }}
                         >
-                          {configLoading ? "…" : "Load"}
+                          {configLoading ? "…" : t("admin.load")}
                         </button>
                         <button
                           onClick={() => void saveChatConfig()}
@@ -786,7 +788,7 @@ export default function AdminPage({ onScmReportUrl }: {
                           className="px-4 py-2 text-sm font-semibold rounded-lg transition-opacity hover:opacity-90 disabled:opacity-50"
                           style={{ background: CLR_BLUE, color: "#0D0E12" }}
                         >
-                          {configLoading ? "Saving…" : "Save"}
+                          {configLoading ? t("admin.saving") : t("admin.save")}
                         </button>
                       </div>
                     </div>
@@ -798,8 +800,8 @@ export default function AdminPage({ onScmReportUrl }: {
                       {loadError && (
                         <div className="absolute left-0 right-0 px-4 py-2.5 flex items-center gap-2 text-xs" style={{ background: "#FF4D6A12", borderBottom: "1px solid #FF4D6A25", color: "#FF4D6A" }}>
                           <span>⚠</span>
-                          <span>Cannot reach the RAG server.&nbsp;
-                            <button className="underline" onClick={() => void reloadDocs()}>retry</button>
+                          <span>{t("admin.ragServerError")}&nbsp;
+                            <button className="underline" onClick={() => void reloadDocs()}>{t("admin.retry")}</button>
                           </span>
                         </div>
                       )}
@@ -853,7 +855,7 @@ export default function AdminPage({ onScmReportUrl }: {
                                           if (e.key === "Enter") void handleCreateFile(folder);
                                           if (e.key === "Escape") { setNewFileForFolder(null); setNewFileName(""); }
                                         }}
-                                        placeholder="File name"
+                                        placeholder={t("admin.fileNamePlaceholder")}
                                         className="flex-1 rounded px-2 py-0.5 text-[11px] placeholder-gray-500 focus:outline-none min-w-0"
                                         style={{ background: th.inputBg, border: `1px solid ${CLR_BLUE}50`, color: th.textPrimary }}
                                       />
@@ -871,7 +873,7 @@ export default function AdminPage({ onScmReportUrl }: {
                                       onMouseLeave={(e) => { e.currentTarget.style.color = th.textSecondary; }}
                                       onClick={() => { setNewFileForFolder(folder); setNewFileName(""); }}
                                     >
-                                      <span>＋</span> New file
+                                      <span>＋</span> {t("admin.newFile")}
                                     </button>
                                   )}
                                 </div>
@@ -890,7 +892,7 @@ export default function AdminPage({ onScmReportUrl }: {
                                     if (e.key === "Enter") void handleCreateFolder();
                                     if (e.key === "Escape") { setShowNewFolder(false); setNewFolderName(""); }
                                   }}
-                                  placeholder="Folder name"
+                                  placeholder={t("admin.folderNamePlaceholder")}
                                   className="flex-1 rounded px-2 py-1 text-xs placeholder-gray-500 focus:outline-none min-w-0"
                                   style={{ background: th.inputBg, border: `1px solid ${CLR_ORANGE}50`, color: th.textPrimary }}
                                 />
@@ -908,7 +910,7 @@ export default function AdminPage({ onScmReportUrl }: {
                                 onMouseLeave={(e) => { e.currentTarget.style.color = th.textSecondary; e.currentTarget.style.background = "transparent"; }}
                                 onClick={() => { setShowNewFolder(true); setNewFolderName(""); }}
                               >
-                                <FolderIcon /> ＋ New Folder
+                                <FolderIcon /> ＋ {t("admin.newFolder")}
                               </button>
                             )}
                           </div>
@@ -921,7 +923,7 @@ export default function AdminPage({ onScmReportUrl }: {
                           <>
                             <div className="mb-3">
                               <label className="block text-xs font-medium mb-1.5" style={{ color: th.textSecondary }}>
-                                Document Title
+                                {t("admin.documentTitle")}
                               </label>
                               <input
                                 type="text"
@@ -934,11 +936,11 @@ export default function AdminPage({ onScmReportUrl }: {
                               />
                             </div>
                             <div className="mb-3 text-[10px]" style={{ color: th.textSecondary }}>
-                              Path: <span style={{ color: th.textMuted }}>{selectedPath}</span>
+                              {t("admin.path")} <span style={{ color: th.textMuted }}>{selectedPath}</span>
                             </div>
                             <div className="flex-1 flex flex-col min-h-0">
                               <label className="block text-xs font-medium mb-1.5" style={{ color: th.textSecondary }}>
-                                Content
+                                {t("admin.content")}
                               </label>
                               <textarea
                                 value={editContent}
@@ -947,12 +949,12 @@ export default function AdminPage({ onScmReportUrl }: {
                                 style={{ ...inputBase, lineHeight: "1.6", minHeight: 0 }}
                                 onFocus={(e) => { e.target.style.borderColor = CLR_BLUE; }}
                                 onBlur={(e) => { e.target.style.borderColor = th.cardBorder; }}
-                                placeholder="Document content…"
+                                placeholder={t("admin.contentPlaceholder")}
                               />
                             </div>
                             <div className="flex items-center gap-3 mt-4 pt-3 border-t shrink-0" style={{ borderColor: th.cardBorder }}>
                               {dirty && (
-                                <span className="text-[10px]" style={{ color: th.unsavedColor }}>Unsaved changes</span>
+                                <span className="text-[10px]" style={{ color: th.unsavedColor }}>{t("admin.unsavedChanges")}</span>
                               )}
                               <div className="ml-auto flex gap-2">
                                 <button
@@ -962,7 +964,7 @@ export default function AdminPage({ onScmReportUrl }: {
                                   onMouseEnter={(e) => { e.currentTarget.style.background = "#FF4D6A10"; }}
                                   onMouseLeave={(e) => { e.currentTarget.style.background = "transparent"; }}
                                 >
-                                  <TrashIcon /> Delete
+                                  <TrashIcon /> {t("admin.delete")}
                                 </button>
                                 <button
                                   onClick={() => void handleSaveDoc()}
@@ -970,7 +972,7 @@ export default function AdminPage({ onScmReportUrl }: {
                                   className="px-4 py-1.5 rounded-lg text-xs font-semibold transition-opacity disabled:opacity-40"
                                   style={{ background: CLR_BLUE, color: "#0D0E12" }}
                                 >
-                                  Save
+                                  {t("admin.save")}
                                 </button>
                               </div>
                             </div>
@@ -984,8 +986,8 @@ export default function AdminPage({ onScmReportUrl }: {
                               >
                                 <FileIcon />
                               </div>
-                              <p className="text-sm" style={{ color: th.textMuted }}>Select a document to edit</p>
-                              <p className="text-xs mt-1" style={{ color: th.textSecondary }}>or create a new file in a folder</p>
+                              <p className="text-sm" style={{ color: th.textMuted }}>{t("admin.selectDocument")}</p>
+                              <p className="text-xs mt-1" style={{ color: th.textSecondary }}>{t("admin.createNewFile")}</p>
                             </div>
                           </div>
                         )}
@@ -998,15 +1000,15 @@ export default function AdminPage({ onScmReportUrl }: {
                     <div className="h-full overflow-y-auto p-6">
                       {/* Add user form */}
                       <div className="mb-6">
-                        <h3 className="text-sm font-semibold mb-4" style={{ color: th.textPrimary }}>Add Admin User</h3>
+                        <h3 className="text-sm font-semibold mb-4" style={{ color: th.textPrimary }}>{t("admin.addAdminUser")}</h3>
                         <div className="flex gap-3 items-end">
                           <div className="flex-1">
-                            <label className="block text-xs font-medium mb-1.5" style={{ color: th.labelText }}>Email</label>
+                            <label className="block text-xs font-medium mb-1.5" style={{ color: th.labelText }}>{t("admin.emailLabel")}</label>
                             <input
                               type="email"
                               value={newUserEmail}
                               onChange={(e) => { setNewUserEmail(e.target.value); setUserError(null); }}
-                              placeholder="user@example.com"
+                              placeholder={t("admin.emailPlaceholder")}
                               className="w-full rounded-lg px-3 py-2 text-sm placeholder-gray-500 focus:outline-none transition-colors"
                               style={inputBase}
                               onFocus={(e) => { e.target.style.borderColor = CLR_BLUE; }}
@@ -1014,12 +1016,12 @@ export default function AdminPage({ onScmReportUrl }: {
                             />
                           </div>
                           <div className="flex-1">
-                            <label className="block text-xs font-medium mb-1.5" style={{ color: th.labelText }}>Password</label>
+                            <label className="block text-xs font-medium mb-1.5" style={{ color: th.labelText }}>{t("admin.passwordLabel")}</label>
                             <input
                               type="password"
                               value={newUserPassword}
                               onChange={(e) => { setNewUserPassword(e.target.value); setUserError(null); }}
-                              placeholder="Password"
+                              placeholder={t("admin.passwordLabel")}
                               className="w-full rounded-lg px-3 py-2 text-sm placeholder-gray-500 focus:outline-none transition-colors"
                               style={inputBase}
                               onFocus={(e) => { e.target.style.borderColor = CLR_BLUE; }}
@@ -1032,7 +1034,7 @@ export default function AdminPage({ onScmReportUrl }: {
                             className="px-4 py-2 text-sm font-semibold rounded-lg transition-opacity hover:opacity-90 disabled:opacity-50 shrink-0"
                             style={{ background: CLR_TEAL, color: "#0D0E12" }}
                           >
-                            {userLoading ? "Adding…" : "Add User"}
+                            {userLoading ? t("admin.adding") : t("admin.addUser")}
                           </button>
                         </div>
                         {userError && <p className="text-xs mt-2" style={{ color: "#FF4D6A" }}>{userError}</p>}
@@ -1040,9 +1042,9 @@ export default function AdminPage({ onScmReportUrl }: {
 
                       {/* User list */}
                       <div>
-                        <h3 className="text-sm font-semibold mb-3" style={{ color: th.textPrimary }}>Admin Users</h3>
+                        <h3 className="text-sm font-semibold mb-3" style={{ color: th.textPrimary }}>{t("admin.adminUsers")}</h3>
                         {users.length === 0 ? (
-                          <p className="text-xs" style={{ color: th.textMuted }}>No additional admin users.</p>
+                          <p className="text-xs" style={{ color: th.textMuted }}>{t("admin.noUsers")}</p>
                         ) : (
                           <div className="flex flex-col gap-2">
                             {users.map((u) => (
@@ -1065,9 +1067,9 @@ export default function AdminPage({ onScmReportUrl }: {
                                     }
                                     onMouseEnter={(e) => { if (changePwUser !== u.username) { e.currentTarget.style.color = CLR_BLUE; e.currentTarget.style.borderColor = CLR_BLUE + "40"; } }}
                                     onMouseLeave={(e) => { if (changePwUser !== u.username) { e.currentTarget.style.color = th.textMuted; e.currentTarget.style.borderColor = th.cardBorder; } }}
-                                    title="Change password"
+                                    title={t("admin.changePassword")}
                                   >
-                                    Change password
+                                    {t("admin.changePassword")}
                                   </button>
                                   <button
                                     onClick={() => void handleDeleteUser(u.username)}
@@ -1075,7 +1077,7 @@ export default function AdminPage({ onScmReportUrl }: {
                                     style={{ color: th.textMuted }}
                                     onMouseEnter={(e) => { e.currentTarget.style.color = "#FF4D6A"; e.currentTarget.style.background = "#FF4D6A10"; }}
                                     onMouseLeave={(e) => { e.currentTarget.style.color = th.textMuted; e.currentTarget.style.background = "transparent"; }}
-                                    title="Remove user"
+                                    title={t("admin.removeUserTitle")}
                                   >
                                     <TrashIcon />
                                   </button>
@@ -1093,7 +1095,7 @@ export default function AdminPage({ onScmReportUrl }: {
                                         if (e.key === "Enter") void handleChangePassword(u.username);
                                         if (e.key === "Escape") { setChangePwUser(null); setChangePwValue(""); setChangePwError(null); }
                                       }}
-                                      placeholder="New password"
+                                      placeholder={t("admin.newPasswordPlaceholder")}
                                       className="flex-1 rounded-lg px-3 py-1.5 text-sm placeholder-gray-500 focus:outline-none transition-colors"
                                       style={{ background: th.inputBg, border: `1px solid ${changePwError ? "#FF4D6A" : th.cardBorder}`, color: th.textPrimary }}
                                       onFocus={(e) => { if (!changePwError) e.target.style.borderColor = CLR_BLUE; }}
@@ -1105,14 +1107,14 @@ export default function AdminPage({ onScmReportUrl }: {
                                       className="px-3 py-1.5 text-xs font-semibold rounded-lg transition-opacity disabled:opacity-50 shrink-0"
                                       style={{ background: CLR_BLUE, color: "#0D0E12" }}
                                     >
-                                      {changePwLoading ? "Saving…" : "Save"}
+                                      {changePwLoading ? t("admin.saving") : t("admin.save")}
                                     </button>
                                     <button
                                       onClick={() => { setChangePwUser(null); setChangePwValue(""); setChangePwError(null); }}
                                       className="px-3 py-1.5 text-xs rounded-lg border transition-colors shrink-0"
                                       style={{ color: th.textMuted, borderColor: th.cardBorder }}
                                     >
-                                      Cancel
+                                      {t("admin.cancel")}
                                     </button>
                                     {changePwError && (
                                       <span className="text-xs" style={{ color: "#FF4D6A" }}>{changePwError}</span>
@@ -1126,7 +1128,7 @@ export default function AdminPage({ onScmReportUrl }: {
                       </div>
 
                       <p className="text-xs mt-6" style={{ color: th.textMuted }}>
-                        Default admin username is set in server .env (ADMIN_USERNAME)
+                        {t("admin.envNote")}
                       </p>
                     </div>
                   )}

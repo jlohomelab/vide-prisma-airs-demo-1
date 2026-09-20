@@ -1,6 +1,8 @@
 import { type JSX, useEffect, useRef, useState } from "react";
 import { loadRagDocs, searchDocs } from "../utils/rag";
 import { useTheme } from "../contexts/ThemeContext";
+import { useLanguage } from "../contexts/LanguageContext";
+import type { TranslationKey } from "../i18n/translations";
 
 const CLR_BLUE = "#4FC3F7";
 const CLR_ORANGE = "#FF9500";
@@ -104,21 +106,21 @@ async function fetchConfig(password: string): Promise<ChatConfig> {
   return res.json() as Promise<ChatConfig>;
 }
 
-const PROMPT_VIOLATION_MSGS: Record<string, string> = {
-  dlp:             "Security violation detected — your query contains sensitive data.",
-  agent:           "Security violation detected — your query may affect the AI agent.",
-  injection:       "Security violation detected — your query contains prompt injection context.",
-  malicious_code:  "Security violation detected — your query contains malicious code.",
-  topic_violation: "Security violation detected — your query violates the topic of this chatbot.",
-  toxic_content:   "Security violation detected — your query contains toxic content.",
-  url_cats:        "Security violation detected — your query contains a malicious URL.",
+const PROMPT_VIOLATION_KEYS: Record<string, TranslationKey> = {
+  dlp:             "violation.prompt.dlp",
+  agent:           "violation.prompt.agent",
+  injection:       "violation.prompt.injection",
+  malicious_code:  "violation.prompt.maliciousCode",
+  topic_violation: "violation.prompt.topicViolation",
+  toxic_content:   "violation.prompt.toxicContent",
+  url_cats:        "violation.prompt.urlCats",
 };
 
-const RESPONSE_VIOLATION_MSGS: Record<string, string> = {
-  dlp:            "Security violation detected — you are requesting sensitive data.",
-  malicious_code: "Security violation detected — the response contains malicious code.",
-  toxic_content:  "Security violation detected — the response contains toxic content.",
-  url_cats:       "Security violation detected — the response contains a malicious URL.",
+const RESPONSE_VIOLATION_KEYS: Record<string, TranslationKey> = {
+  dlp:            "violation.response.dlp",
+  malicious_code: "violation.response.maliciousCode",
+  toxic_content:  "violation.response.toxicContent",
+  url_cats:       "violation.response.urlCats",
 };
 
 type CheckData = {
@@ -127,16 +129,19 @@ type CheckData = {
   response_detected?: Record<string, boolean>;
 };
 
-function extractViolationMessage(hookResults: {
-  before_request_hooks?: Array<{ checks?: Array<{ data?: CheckData }> }>;
-  after_request_hooks?: Array<{ checks?: Array<{ data?: CheckData }> }>;
-} | undefined): string {
+function extractViolationMessage(
+  hookResults: {
+    before_request_hooks?: Array<{ checks?: Array<{ data?: CheckData }> }>;
+    after_request_hooks?: Array<{ checks?: Array<{ data?: CheckData }> }>;
+  } | undefined,
+  t: (key: TranslationKey) => string
+): string {
   for (const hook of hookResults?.before_request_hooks ?? []) {
     for (const check of hook.checks ?? []) {
       const detected = check.data?.prompt_detected;
       if (detected) {
-        for (const key of Object.keys(PROMPT_VIOLATION_MSGS)) {
-          if (detected[key] === true) return PROMPT_VIOLATION_MSGS[key];
+        for (const key of Object.keys(PROMPT_VIOLATION_KEYS)) {
+          if (detected[key] === true) return t(PROMPT_VIOLATION_KEYS[key]);
         }
       }
     }
@@ -145,13 +150,13 @@ function extractViolationMessage(hookResults: {
     for (const check of hook.checks ?? []) {
       const detected = check.data?.response_detected;
       if (detected) {
-        for (const key of Object.keys(RESPONSE_VIOLATION_MSGS)) {
-          if (detected[key] === true) return RESPONSE_VIOLATION_MSGS[key];
+        for (const key of Object.keys(RESPONSE_VIOLATION_KEYS)) {
+          if (detected[key] === true) return t(RESPONSE_VIOLATION_KEYS[key]);
         }
       }
     }
   }
-  return "Security violation detected — your query was blocked by the AI gateway.";
+  return t("violation.generic");
 }
 
 function SendIcon(): JSX.Element {
@@ -206,9 +211,10 @@ export default function ChatPanel({ secured, onRawResponse, onInputFocus, onInpu
 
   const { darkMode } = useTheme();
   const th = buildTheme(darkMode);
+  const { t } = useLanguage();
 
   const accentColor = secured ? CLR_BLUE : CLR_ORANGE;
-  const modeLabel = secured ? "Secured" : "Unsecured";
+  const modeLabel = secured ? t("diagram.secured") : t("diagram.unsecured");
   const modelLabel = secured ? chatConfig.portkey.model : chatConfig.direct.model;
 
   const sendMessage = async () => {
@@ -236,7 +242,7 @@ export default function ChatPanel({ secured, onRawResponse, onInputFocus, onInpu
       if (ragFetchFailed) {
         setMessages((prev) => [
           ...prev,
-          { role: "assistant", content: "Knowledge base server is unreachable. Make sure the server is running (`npm run dev`).", error: true },
+          { role: "assistant", content: t("chat.serverUnreachable"), error: true },
         ]);
         return;
       }
@@ -246,7 +252,7 @@ export default function ChatPanel({ secured, onRawResponse, onInputFocus, onInpu
       if (context === null) {
         setMessages((prev) => [
           ...prev,
-          { role: "assistant", content: "Unable to access internal data." },
+          { role: "assistant", content: t("chat.noData") },
         ]);
         return;
       }
@@ -320,8 +326,8 @@ export default function ChatPanel({ secured, onRawResponse, onInputFocus, onInpu
       }
 
       const content = blocked
-        ? extractViolationMessage(data.hook_results)
-        : (data.choices?.[0]?.message?.content ?? "(no response)");
+        ? extractViolationMessage(data.hook_results, t)
+        : (data.choices?.[0]?.message?.content ?? t("chat.noResponse"));
       setMessages((prev) => [...prev, { role: "assistant", content, blocked }]);
     } catch (err) {
       const msg = err instanceof Error ? err.message : String(err);
@@ -359,7 +365,7 @@ export default function ChatPanel({ secured, onRawResponse, onInputFocus, onInpu
           style={{ borderColor: th.cardBorder, background: th.headerBg }}
         >
           <div className="w-2 h-2 rounded-full shrink-0" style={{ background: accentColor }} />
-          <span className="text-sm font-semibold" style={{ color: th.textPrimary }}>AI Assistant</span>
+          <span className="text-sm font-semibold" style={{ color: th.textPrimary }}>{t("chat.aiAssistant")}</span>
           <span
             className="ml-1 text-[10px] px-2 py-0.5 rounded-full"
             style={{ background: accentColor + "18", color: accentColor, border: `1px solid ${accentColor}30` }}
@@ -378,9 +384,9 @@ export default function ChatPanel({ secured, onRawResponse, onInputFocus, onInpu
               onClick={() => setMessages([])}
               className="ml-auto text-[10px] px-2 py-0.5 rounded transition-opacity opacity-50 hover:opacity-100"
               style={{ color: th.textMuted, border: `1px solid ${th.cardBorder}` }}
-              title="Clear chat"
+              title={t("chat.clearTitle")}
             >
-              Clear
+              {t("chat.clear")}
             </button>
           )}
         </div>
@@ -400,8 +406,8 @@ export default function ChatPanel({ secured, onRawResponse, onInputFocus, onInpu
                 >
                   ✦
                 </div>
-                <p className="text-sm font-medium" style={{ color: th.textMuted }}>Ask about PAN policies</p>
-                <p className="text-xs mt-0.5" style={{ color: th.textSecondary }}>HR · Expenses · IT Knowledge Base</p>
+                <p className="text-sm font-medium" style={{ color: th.textMuted }}>{t("chat.emptyTitle")}</p>
+                <p className="text-xs mt-0.5" style={{ color: th.textSecondary }}>{t("chat.emptySubtitle")}</p>
               </div>
             </div>
           )}
@@ -480,7 +486,7 @@ export default function ChatPanel({ secured, onRawResponse, onInputFocus, onInpu
               value={input}
               onChange={handleTextareaChange}
               onKeyDown={handleKeyDown}
-              placeholder="Ask about HR, expenses, IT…"
+              placeholder={t("chat.placeholder")}
               rows={1}
               className="flex-1 rounded-lg px-3 py-2 text-sm placeholder-gray-400 resize-none focus:outline-none transition-colors"
               style={{
@@ -499,13 +505,13 @@ export default function ChatPanel({ secured, onRawResponse, onInputFocus, onInpu
               disabled={!input.trim() || isLoading}
               className="rounded-lg p-2.5 flex items-center justify-center transition-opacity shrink-0 disabled:opacity-30 disabled:cursor-not-allowed"
               style={{ background: accentColor, color: "#0D0E12" }}
-              aria-label="Send message"
+              aria-label={t("chat.sendLabel")}
             >
               <SendIcon />
             </button>
           </div>
           <p className="text-[10px] mt-1.5" style={{ color: th.textHint }}>
-            Enter to send · Shift+Enter for new line
+            {t("chat.hint")}
           </p>
         </div>
       </div>

@@ -1,4 +1,5 @@
 import { useState, type JSX } from "react";
+import { useLanguage } from "../contexts/LanguageContext";
 
 type JsonPrimitive = string | number | boolean | null;
 interface JsonObject { [key: string]: JsonVal; }
@@ -39,6 +40,7 @@ const MAX_INLINE_STR = 120;
 
 function StringVal({ v, p }: { v: string; p: Palette }): JSX.Element {
   const [expanded, setExpanded] = useState(false);
+  const { t } = useLanguage();
   if (v.length <= MAX_INLINE_STR) {
     return <span style={{ color: p.str }}>&quot;{v}&quot;</span>;
   }
@@ -49,7 +51,7 @@ function StringVal({ v, p }: { v: string; p: Palette }): JSX.Element {
         onClick={(e) => { e.stopPropagation(); setExpanded(x => !x); }}
         style={{ background: "none", border: "none", cursor: "pointer", fontFamily: "inherit", fontSize: "inherit", color: p.strLong, padding: "0 2px" }}
       >
-        {expanded ? " ▲ less" : `…+${v.length - MAX_INLINE_STR} more`}
+        {expanded ? t("json.less") : t("json.more", { n: v.length - MAX_INLINE_STR })}
       </button>
       &quot;
     </span>
@@ -58,6 +60,7 @@ function StringVal({ v, p }: { v: string; p: Palette }): JSX.Element {
 
 function Node({ val, depth, p }: { val: JsonVal; depth: number; p: Palette }): JSX.Element {
   const [open, setOpen] = useState(depth < 2);
+  const { t } = useLanguage();
 
   if (val === null)            return <span style={{ color: p.nil }}>null</span>;
   if (typeof val === "boolean") return <span style={{ color: p.bool }}>{String(val)}</span>;
@@ -105,7 +108,9 @@ function Node({ val, depth, p }: { val: JsonVal; depth: number; p: Palette }): J
       ) : (
         <>
           <span style={{ color: p.toggle, fontSize: "10px" }}>
-            {" "}{isArr ? `${entries.length} item${entries.length !== 1 ? "s" : ""}` : `${entries.length} key${entries.length !== 1 ? "s" : ""}`}
+            {" "}{isArr
+              ? `${entries.length} ${t(entries.length !== 1 ? "json.items" : "json.item")}`
+              : `${entries.length} ${t(entries.length !== 1 ? "json.keys" : "json.key")}`}
           </span>
           <span style={{ color: p.punct }}>{R}</span>
         </>
