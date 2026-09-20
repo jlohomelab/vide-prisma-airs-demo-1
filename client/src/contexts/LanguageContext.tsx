@@ -4,7 +4,7 @@ import { TRANSLATIONS, type TranslationKey } from "../i18n/translations";
 export type Lang = "en" | "zh-TW" | "zh-CN";
 
 export const LANG_LABELS: Record<Lang, string> = {
-  "en": "EN",
+  "en": "Eng",
   "zh-TW": "繁中",
   "zh-CN": "简中",
 };

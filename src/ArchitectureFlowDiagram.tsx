@@ -348,10 +348,10 @@ export default function ArchitectureFlowDiagram() {
       <div className="w-full max-w-[1100px]">
         <div className="mb-8 text-center">
           <h1 className="text-3xl font-bold text-white mb-2 tracking-tight">
-            AI Runtime Security Architecture
+            Prisma AIRS AI Gateway and Security Guardrails Demo
           </h1>
           <p className="text-gray-400 text-sm">
-            Visualizing data flow between application layers
+            Interactive live demo with step-by-step data flow visualization
           </p>
         </div>
 

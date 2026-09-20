@@ -1173,7 +1173,7 @@ export default function ArchitectureFlowDiagram() {
       {/* Theme toggle — fixed bottom-left */}
       <button
         onClick={() => setDarkMode((d) => !d)}
-        className="fixed bottom-4 left-4 z-40 flex items-center gap-2 px-3 py-2 rounded-xl border text-xs font-semibold transition-all shadow-lg"
+        className="fixed bottom-4 left-4 z-40 flex items-center gap-3 px-3 py-2.5 rounded-xl border text-xs font-semibold transition-all shadow-lg"
         style={{
           background: darkMode ? "#0F1015" : "#FFFFFF",
           borderColor: th.controlBorder,
@@ -1197,7 +1197,7 @@ export default function ArchitectureFlowDiagram() {
           const idx = LANGS.indexOf(lang);
           setLang(LANGS[(idx + 1) % LANGS.length] as Lang);
         }}
-        className="fixed bottom-4 left-[60px] z-40 flex items-center px-3 py-2 rounded-xl border text-xs font-semibold transition-all shadow-lg"
+        className="fixed bottom-4 left-[70px] z-40 flex items-center px-3 py-2 rounded-xl border text-xs font-semibold transition-all shadow-lg"
         style={{
           background: darkMode ? "#0F1015" : "#FFFFFF",
           borderColor: th.controlBorder,

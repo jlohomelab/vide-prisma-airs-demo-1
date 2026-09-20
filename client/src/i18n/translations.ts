@@ -205,17 +205,17 @@ const zhTW: AllTranslations = {
   "step.secured.5.desc": "通過所有安全檢查後，Prisma AIRS AI 閘道將經過淨化的請求路由至最佳 LLM，並提供完整的可觀察性和護欄。",
 
   // ── Risk badges ────────────────────────────────────────────────────────────
-  "risk.promptInjection": "提示注入",
-  "risk.dataLeakage": "資料洩漏",
-  "risk.modelEvasion": "模型逃逸",
+  "risk.promptInjection": " 提示注入 ",
+  "risk.dataLeakage": " 資料洩漏 ",
+  "risk.modelEvasion": " 模型逃逸 ",
 
   // ── Gateway capability badges ──────────────────────────────────────────────
-  "badge.securityGuardrails": "安全護欄",
-  "badge.dlpMalwareScanning": "DLP / 惡意軟體掃描",
-  "badge.loadBalancing": "負載平衡",
-  "badge.budgetTokenLimits": "預算 / 令牌限制",
+  "badge.securityGuardrails": " 安全護欄 ",
+  "badge.dlpMalwareScanning": "  DLP / 惡意軟體掃描  ",
+  "badge.loadBalancing": " 負載平衡 ",
+  "badge.budgetTokenLimits": " 預算 / 令牌限制 ",
   "badge.observability": "可觀察性",
-  "badge.combined": "負載平衡 | 預算/令牌限制 | 可觀察性",
+  "badge.combined": "     負載平衡 | 預算/令牌限制 | 可觀察性    ",
 
   // ── Chat panel ─────────────────────────────────────────────────────────────
   "chat.aiAssistant": "AI 助理",
@@ -353,17 +353,17 @@ const zhCN: AllTranslations = {
   "step.secured.5.desc": "通过所有安全检查后，Prisma AIRS AI 网关将经过净化的请求路由至最优 LLM，并提供完整的可观察性和护栏。",
 
   // ── Risk badges ────────────────────────────────────────────────────────────
-  "risk.promptInjection": "提示注入",
-  "risk.dataLeakage": "数据泄漏",
-  "risk.modelEvasion": "模型逃逸",
+  "risk.promptInjection": " 提示注入 ",
+  "risk.dataLeakage": " 数据泄漏 ",
+  "risk.modelEvasion": " 模型逃逸 ",
 
   // ── Gateway capability badges ──────────────────────────────────────────────
-  "badge.securityGuardrails": "安全护栏",
-  "badge.dlpMalwareScanning": "DLP / 恶意软件扫描",
-  "badge.loadBalancing": "负载均衡",
-  "badge.budgetTokenLimits": "预算 / 令牌限制",
-  "badge.observability": "可观察性",
-  "badge.combined": "负载均衡 | 预算/令牌限制 | 可观察性",
+  "badge.securityGuardrails": " 安全护栏 ",
+  "badge.dlpMalwareScanning": "  DLP / 恶意软件扫描  ",
+  "badge.loadBalancing": " 负载均衡 ",
+  "badge.budgetTokenLimits": " 预算 / 令牌限制 ",
+  "badge.observability": " 可观察性 ",
+  "badge.combined": "   负载均衡 | 预算/令牌限制 | 可观察性   ",
 
   // ── Chat panel ─────────────────────────────────────────────────────────────
   "chat.aiAssistant": "AI 助理",

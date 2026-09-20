@@ -544,7 +544,7 @@ export default function AdminPage({ onScmReportUrl }: {
       {/* Trigger button */}
       <button
         onClick={() => setOpen(true)}
-        className="fixed bottom-4 left-28 z-40 flex items-center gap-2 px-3 py-2 rounded-xl border text-xs font-semibold transition-all shadow-lg"
+        className="fixed bottom-4 left-30 z-40 flex items-center gap-2 px-3 py-2 rounded-xl border text-xs font-semibold transition-all shadow-lg"
         style={{
           background: th.headerBg,
           borderColor: th.cardBorder,
@@ -574,7 +574,7 @@ export default function AdminPage({ onScmReportUrl }: {
             className="relative rounded-2xl border shadow-2xl flex flex-col overflow-hidden"
             style={{
               width: "min(960px, 95vw)",
-              height: "min(680px, 92vh)",
+              height: "min(700px, 92vh)",
               background: th.modalBg,
               borderColor: th.modalBorder,
             }}
