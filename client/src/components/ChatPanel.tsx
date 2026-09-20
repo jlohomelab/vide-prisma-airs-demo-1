@@ -177,7 +177,7 @@ function SendIcon(): JSX.Element {
   );
 }
 
-export default function ChatPanel({ secured, onRawResponse, onInputFocus, onInputBlur, onSend, onResponse, onBlocked }: {
+export default function ChatPanel({ secured, onRawResponse, onInputFocus, onInputBlur, onSend, onResponse, onBlocked, pendingMessage, onMessageConsumed }: {
   secured: boolean;
   onRawResponse?: (data: unknown) => void;
   onInputFocus?: () => void;
@@ -185,6 +185,8 @@ export default function ChatPanel({ secured, onRawResponse, onInputFocus, onInpu
   onSend?: () => void;
   onResponse?: () => void;
   onBlocked?: () => void;
+  pendingMessage?: string | null;
+  onMessageConsumed?: () => void;
 }): JSX.Element {
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState("");
@@ -210,6 +212,12 @@ export default function ChatPanel({ secured, onRawResponse, onInputFocus, onInpu
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages, isLoading]);
 
+  useEffect(() => {
+    if (!pendingMessage) return;
+    onMessageConsumed?.();
+    void sendMessage(pendingMessage);
+  }, [pendingMessage]); // eslint-disable-line react-hooks/exhaustive-deps
+
   const { darkMode } = useTheme();
   const th = buildTheme(darkMode);
   const { t } = useLanguage();
@@ -218,8 +226,8 @@ export default function ChatPanel({ secured, onRawResponse, onInputFocus, onInpu
   const modeLabel = secured ? t("diagram.secured") : t("diagram.unsecured");
   const modelLabel = secured ? chatConfig.portkey.model : chatConfig.direct.model;
 
-  const sendMessage = async () => {
-    const text = input.trim();
+  const sendMessage = async (textOverride?: string) => {
+    const text = (textOverride !== undefined ? textOverride : input).trim();
     if (!text || isLoading) return;
     onRawResponse?.(null);
     onSend?.();

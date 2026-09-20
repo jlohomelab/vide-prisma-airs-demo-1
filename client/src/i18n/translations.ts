@@ -164,6 +164,11 @@ const en = {
   "json.items": "items",
   "json.key": "key",
   "json.keys": "keys",
+
+  // ── Attack simulation labels ───────────────────────────────────────────────
+  "attack.promptInjection": "Prompt Injection",
+  "attack.sensitiveData": "Sensitive Data Retrieval",
+  "attack.maliciousUrl": "Malicious URL in Response",
 } satisfies Record<string, string>;
 
 export type TranslationKey = keyof typeof en;
@@ -317,6 +322,11 @@ const zhTW: AllTranslations = {
   "json.items": "個項目",
   "json.key": "個鍵",
   "json.keys": "個鍵",
+
+  // ── Attack simulation labels ───────────────────────────────────────────────
+  "attack.promptInjection": "提示注入攻擊",
+  "attack.sensitiveData": "敏感資料擷取",
+  "attack.maliciousUrl": "回應中的惡意 URL",
 };
 
 const zhCN: AllTranslations = {
@@ -466,6 +476,11 @@ const zhCN: AllTranslations = {
   "json.items": "个项目",
   "json.key": "个键",
   "json.keys": "个键",
+
+  // ── Attack simulation labels ───────────────────────────────────────────────
+  "attack.promptInjection": "提示注入攻击",
+  "attack.sensitiveData": "敏感数据检索",
+  "attack.maliciousUrl": "响应中的恶意 URL",
 };
 
 export const TRANSLATIONS: Record<"en" | "zh-TW" | "zh-CN", AllTranslations> = {
