@@ -104,6 +104,56 @@ async function fetchConfig(password: string): Promise<ChatConfig> {
   return res.json() as Promise<ChatConfig>;
 }
 
+const PROMPT_VIOLATION_MSGS: Record<string, string> = {
+  dlp:             "Security violation detected — your query contains sensitive data.",
+  agent:           "Security violation detected — your query may affect the AI agent.",
+  injection:       "Security violation detected — your query contains prompt injection context.",
+  malicious_code:  "Security violation detected — your query contains malicious code.",
+  topic_violation: "Security violation detected — your query violates the topic of this chatbot.",
+  toxic_content:   "Security violation detected — your query contains toxic content.",
+  url_cats:        "Security violation detected — your query contains a malicious URL.",
+};
+
+const RESPONSE_VIOLATION_MSGS: Record<string, string> = {
+  dlp:            "Security violation detected — you are requesting sensitive data.",
+  malicious_code: "Security violation detected — the response contains malicious code.",
+  toxic_content:  "Security violation detected — the response contains toxic content.",
+  url_cats:       "Security violation detected — the response contains a malicious URL.",
+};
+
+type CheckData = {
+  action?: string;
+  prompt_detected?: Record<string, boolean>;
+  response_detected?: Record<string, boolean>;
+};
+
+function extractViolationMessage(hookResults: {
+  before_request_hooks?: Array<{ checks?: Array<{ data?: CheckData }> }>;
+  after_request_hooks?: Array<{ checks?: Array<{ data?: CheckData }> }>;
+} | undefined): string {
+  for (const hook of hookResults?.before_request_hooks ?? []) {
+    for (const check of hook.checks ?? []) {
+      const detected = check.data?.prompt_detected;
+      if (detected) {
+        for (const key of Object.keys(PROMPT_VIOLATION_MSGS)) {
+          if (detected[key] === true) return PROMPT_VIOLATION_MSGS[key];
+        }
+      }
+    }
+  }
+  for (const hook of hookResults?.after_request_hooks ?? []) {
+    for (const check of hook.checks ?? []) {
+      const detected = check.data?.response_detected;
+      if (detected) {
+        for (const key of Object.keys(RESPONSE_VIOLATION_MSGS)) {
+          if (detected[key] === true) return RESPONSE_VIOLATION_MSGS[key];
+        }
+      }
+    }
+  }
+  return "Security violation detected — your query was blocked by the AI gateway.";
+}
+
 function SendIcon(): JSX.Element {
   return (
     <svg
@@ -251,15 +301,15 @@ export default function ChatPanel({ secured, onRawResponse, onInputFocus, onInpu
         action?: string;
         choices?: Array<{ message?: { content?: string } }>;
         hook_results?: {
-          before_request_hooks?: Array<{ checks?: Array<{ data?: { action?: string } }> }>;
-          after_request_hooks?: Array<{ checks?: Array<{ data?: { action?: string } }> }>;
+          before_request_hooks?: Array<{ checks?: Array<{ data?: CheckData }> }>;
+          after_request_hooks?: Array<{ checks?: Array<{ data?: CheckData }> }>;
         };
       } = {};
       try { data = JSON.parse(rawText) as typeof data; } catch { /* not JSON */ }
 
       onRawResponse?.(data);
 
-      const isBlocked = (hooks: Array<{ checks?: Array<{ data?: { action?: string } }> }> | undefined) =>
+      const isBlocked = (hooks: Array<{ checks?: Array<{ data?: CheckData }> }> | undefined) =>
         hooks?.some((h) => h.checks?.some((c) => c.data?.action === "block")) ?? false;
       const blocked =
         data.action === "block" ||
@@ -270,7 +320,7 @@ export default function ChatPanel({ secured, onRawResponse, onInputFocus, onInpu
       }
 
       const content = blocked
-        ? "Security violation! Please ensure your query is not related to harmful or sensitive data (e.g. PII)."
+        ? extractViolationMessage(data.hook_results)
         : (data.choices?.[0]?.message?.content ?? "(no response)");
       setMessages((prev) => [...prev, { role: "assistant", content, blocked }]);
     } catch (err) {
