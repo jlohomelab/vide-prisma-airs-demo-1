@@ -93,5 +93,4 @@ jobs:
           app-name: 'jlo-airs-demo'
           slot-name: 'Production'
           package: .
-          startup-command: 'node server.mjs'
           publish-profile: ${{ secrets.AZUREAPPSERVICE_PUBLISHPROFILE_2E640885BA4B4A75AFE6318E97A55F86 }}
