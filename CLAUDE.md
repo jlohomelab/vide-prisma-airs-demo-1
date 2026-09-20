@@ -23,14 +23,16 @@ Copy `.env.example` to `.env` and fill in secrets before running. Never commit `
 |---|---|---|
 | `ADMIN_PASSWORD` | Server only | Password for all admin API calls (`x-admin-password` header) |
 | `ADMIN_USERNAME` | Server only | Default admin login username (default: `admin`) |
-| `VITE_PORTKEY_BASE_URL` | Client | Default Portkey gateway base URL |
-| `VITE_PORTKEY_PROVIDER` | Client | Default `x-portkey-provider` value |
-| `VITE_PORTKEY_MODEL` | Client | Default model for Portkey mode |
-| `VITE_PORTKEY_SCM_REPORT_URL` | Client | URL template for "View Report" button; use `${sessionId}` as placeholder |
-| `VITE_DIRECT_BASE_URL` | Client | Default direct LLM endpoint URL |
-| `VITE_DIRECT_MODEL` | Client | Default model for direct LLM mode |
+| `VITE_PORTKEY_BASE_URL` | Client + Server | Default Portkey gateway base URL |
+| `VITE_PORTKEY_PROVIDER` | Client + Server | Default `x-portkey-provider` value |
+| `VITE_PORTKEY_MODEL` | Client + Server | Default model for Portkey mode |
+| `VITE_PORTKEY_SCM_REPORT_URL` | Client + Server | URL template for "View Report" button; use `${sessionId}` as placeholder |
+| `VITE_DIRECT_BASE_URL` | Client + Server | Default direct LLM endpoint URL |
+| `VITE_DIRECT_MODEL` | Client + Server | Default model for direct LLM mode |
+| `PORTKEY_API_KEY` | Server only | Portkey API key — set in Azure App Service Configuration, never in `.env` |
+| `DIRECT_BEARER_TOKEN` | Server only | Direct LLM bearer token — set in Azure App Service Configuration, never in `.env` |
 
-`VITE_*` variables are bundled into the client JavaScript — do not put secrets there. API keys and bearer tokens are stored server-side in `data/config.json`, never in `.env`.
+`VITE_*` variables are bundled into the client JavaScript at build time — do not put secrets there. API keys and bearer tokens are stored server-side in `data/config.json` (managed via Admin Console) or injected via Azure App Service environment variables (`PORTKEY_API_KEY`, `DIRECT_BEARER_TOKEN`). The server's `loadConfig()` overlays these env vars on top of `data/config.json` at runtime, so Azure env vars always take priority.
 
 ## Production Deployment
 
@@ -68,7 +70,7 @@ Two-column flex-row layout:
 - **Contextual overlays** — risk callout badges (red) on the unsecured final step; gateway capability badges (blue) on the secured final step
 - **Conditional node colors** — nodes support an `activeColor` field that overrides `color` when active (unsecured LLM: white → red)
 - **Chat-phase live highlighting** — a `ChatPhase` state machine (`idle | typing | backend | processing | resp0–resp3 | endpoint`) overrides step-based node/edge highlighting in response to real chat events (focus, send, response received). Transitions are driven by callbacks from `ChatPanel` (`onInputFocus`, `onInputBlur`, `onSend`, `onResponse`).
-- **API Response box** — displays raw JSON from the last LLM/gateway response; "View Report ↗" button appears when a `session_id` is found in `hook_results`, linking to Strata Cloud Manager using the configurable `scmUrlTemplate`
+- **API Response box** — displays the last LLM/gateway response as a collapsible syntax-highlighted JSON tree (`JsonTree` component); "View Report ↗" button appears when a `session_id` is found in `hook_results`; `scmUrlTemplate` is loaded from `/api/config` on mount (using the stored admin token) so it survives page reloads without re-saving config
 - **ThemeContext** — provides `darkMode: boolean` and `toggleTheme()` to all child components; node fills, borders, and text colors switch between dark and light
 
 All node positions, edge connections, step metadata, and color palette are defined as constants at the top of this file — no external data files.
@@ -77,7 +79,9 @@ All node positions, edge connections, step metadata, and color palette are defin
 
 - Listens on port 3001 (or `$PORT`), binds to `0.0.0.0`
 - Reads/writes `data/rag.json`, `data/config.json`, and `data/users.json` via synchronous `readFileSync`/`writeFileSync`
+- `loadConfig()` merges `data/config.json` with env vars at runtime: `VITE_PORTKEY_*` / `PORTKEY_API_KEY` / `VITE_DIRECT_*` / `DIRECT_BEARER_TOKEN` take priority over stored values — enables Azure App Service Configuration to inject credentials without file changes
 - Auth: `x-admin-password` request header checked by `requireAuth` middleware against `ADMIN_PASSWORD` env var
+- CORS: `Access-Control-Allow-Methods` includes `PATCH` (required for change-password endpoint)
 - Routes:
   - `GET /api/rag/docs` — public; returns all RAG documents
   - `POST /api/rag/docs` — upsert a document (auth)
@@ -105,7 +109,8 @@ All node positions, edge connections, step metadata, and color palette are defin
   - `secured=false` → `POST {baseUrl}` with `Authorization: Bearer {token}`
 - **LLM config** loaded from `GET /api/config` on mount using the stored admin token from `localStorage["chat-admin-password"]`
 - **RAG gate**: calls `loadRagDocs()` + `searchDocs()` on every send; returns `"Unable to access internal data."` if no match without calling the LLM
-- **Block detection**: parses `hook_results.after_request_hooks[].checks[].data.action === "block"` from the response; blocked messages display a red-bordered security warning instead of the LLM reply
+- **Clear button** — header button (visible only when messages exist) clears the chat history
+- **Block detection**: parses `hook_results.before_request_hooks[].checks[].data.prompt_detected` and `after_request_hooks[].checks[].data.response_detected` for specific flags (`dlp`, `agent`, `injection`, `malicious_code`, `topic_violation`, `toxic_content`, `url_cats`); displays a flag-specific violation message. Falls back to a generic gateway-blocked message if no flag is matched
 - **Event callbacks**: `onInputFocus`, `onInputBlur`, `onSend`, `onResponse` — used by `ArchitectureFlowDiagram` to drive the chat-phase node highlighting
 
 **`client/src/components/AdminPage.tsx`** — Combined admin console. Renders a `fixed bottom-4 left-16` trigger button. It owns:
@@ -116,7 +121,10 @@ All node positions, edge connections, step metadata, and color palette are defin
   - **Chat Settings** — Portkey config (baseUrl, apiKey, provider, model, SCM Report URL) and Direct LLM config (baseUrl, bearerToken, model); load/save via `GET/POST /api/config`; emits `onScmReportUrl` on save
   - **Knowledge Base** — full RAG document CRUD: folder tree, file list, title/content editor, new folder/file creation, delete; uses stored token for API calls
   - **Users** — list extra admin users, add user (email as username + password), change password (inline expand per row), delete user; calls `/api/users` endpoints
+- **Auto-reload on save** — closing the panel after a successful Chat Settings save triggers `window.location.reload()` (tracked via `configSavedRef`); on reload the stored token is present so config loads immediately without re-logging in
 - **Logout** — clears `localStorage["chat-admin-password"]` and resets auth state
+
+**`client/src/components/JsonTree.tsx`** — Collapsible, syntax-highlighted JSON tree viewer used by the API Response box. Features: color-coded types (keys blue, strings green, numbers orange, booleans purple, null gray), `▶`/`▼` toggle on objects/arrays, auto-expands first 2 levels, shows item/key count when collapsed, truncates strings over 120 chars with an expand button. Accepts `data: unknown` and `darkMode: boolean`.
 
 **`client/src/components/RagAdmin.tsx`** — Legacy standalone admin panel. Superseded by `AdminPage` and no longer rendered; kept in the codebase but unused.
 

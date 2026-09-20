@@ -20,12 +20,14 @@ Interactive live demo with step-by-step SVG visualization of the Prisma AIRS AI 
   - **Secured mode** → routes through [Portkey AI gateway](https://portkey.ai) with AIRS inspection
   - **Unsecured mode** → calls the LLM directly with a Bearer token
 - **Retrieval-Augmented Generation** — answers are grounded in internal documents only; unrelated questions return `"Unable to access internal data."` without calling the LLM
-- **Block detection** — when the AIRS gateway blocks a response, the message bubble is highlighted with a red security warning border
+- **Block detection** — when the AIRS gateway blocks a request or response, the message bubble displays a specific reason derived from `hook_results` (e.g. "your query contains prompt injection context", "the response contains sensitive data"); falls back to a generic gateway-blocked message if no specific flag is matched
+- **Clear button** — header button clears the chat history; only visible when messages exist
 - Default model: `gpt-4.1-mini`
 
 ### API Response Inspector
-- **Raw response box** below the chat panel (30% of right-column height)
-- Shows the full JSON response from the last LLM or gateway call, including AIRS `hook_results`
+- **Collapsible JSON tree** below the chat panel (30% of right-column height) with syntax highlighting: keys, strings, numbers, booleans, and null each have distinct colors
+- First two levels auto-expanded; deeper nodes start collapsed and show item/key count
+- Shows the full response from the last LLM or gateway call, including AIRS `hook_results`
 - **View Report ↗** button appears when a `session_id` is present in the response, linking to Strata Cloud Manager for the full AI session audit
 
 ### Admin Console
@@ -35,6 +37,7 @@ Interactive live demo with step-by-step SVG visualization of the Prisma AIRS AI 
   - **Chat Settings** — configure Portkey gateway (base URL, API key, provider, model, SCM Report URL) and Direct LLM (base URL, bearer token, model); settings saved server-side and persist across browsers
   - **Knowledge Base** — full CRUD for internal documents: create/edit/delete files and folders
   - **Users** — add, remove, and change passwords for additional admin accounts (email as username); passwords are hashed server-side and never stored in plain text
+- **Auto-reload on save** — closing the panel after saving Chat Settings reloads the page so the chat picks up the new config immediately; no manual refresh needed
 - Session persists in `localStorage`; no re-login needed until logout
 
 ### Knowledge Base
@@ -78,6 +81,8 @@ This starts both the Vite dev server (port 5173) and the Express API server (por
 | `VITE_DIRECT_MODEL` | Default model for direct mode |
 
 `VITE_*` variables are bundled into the client JavaScript — do not put secrets there. API keys and bearer tokens are entered via the Admin Console and stored server-side in `data/config.json`.
+
+For Azure App Service, set `PORTKEY_API_KEY` and `DIRECT_BEARER_TOKEN` as Application Settings — the server reads them at runtime and they take priority over `data/config.json`.
 
 ## Production Deployment
 
