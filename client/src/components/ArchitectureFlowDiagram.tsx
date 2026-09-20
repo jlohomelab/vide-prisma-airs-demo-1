@@ -125,8 +125,8 @@ const unsecuredEdges: EdgeDef[] = [
 
 const unsecuredSteps: StepDef[] = [
   {
-    activeNodes: ["endpoint"],
-    activeEdges: ["endpoint"],
+    activeNodes: [],
+    activeEdges: [],
     title: "step.0.title",
     description: "step.0.desc",
   },
@@ -173,8 +173,8 @@ const securedEdges: EdgeDef[] = [
 
 const securedSteps: StepDef[] = [
   {
-    activeNodes: ["endpoint"],
-    activeEdges: ["endpoint"],
+    activeNodes: [],
+    activeEdges: [],
     title: "step.0.title",
     description: "step.0.desc",
   },
@@ -513,22 +513,22 @@ function RiskBadges({ node, risks }: { node: NodeDef; risks: string[] }) {
 function AttackLabels({ node, onAttack }: { node: NodeDef; onAttack: (msg: string) => void }) {
   const { t } = useLanguage();
   const cx = node.x + node.width / 2;
-  const baseY = node.y + node.height + 14;
+  const baseY = node.y + node.height + 16;
   return (
     <g>
       {ATTACK_SIMULATIONS.map((atk, i) => {
         const label = "⚡ " + t(atk.labelKey);
-        const w = Math.max(label.length * 6.5 + 20, 110);
-        const y = baseY + i * 26;
+        const w = Math.max(label.length * 6.5 + 45, 110);
+        const y = baseY + i * 30;
         return (
           <g
             key={atk.labelKey}
             onClick={() => onAttack(atk.message)}
             style={{ cursor: "pointer" }}
           >
-            <rect x={cx - w / 2} y={y} width={w} height={20} rx="10" fill={CLR_RED} opacity={0.12} />
-            <rect x={cx - w / 2} y={y} width={w} height={20} rx="10" fill="none" stroke={CLR_RED} strokeWidth="0.8" opacity={0.5} />
-            <text x={cx} y={y + 13.5} textAnchor="middle" fill={CLR_RED} fontSize="11" fontWeight="600" fontFamily="Inter, system-ui, sans-serif">
+            <rect x={cx - w / 2} y={y} width={w} height={20} rx="11" fill={CLR_RED} opacity={0.12} />
+            <rect x={cx - w / 2} y={y} width={w} height={20} rx="11" fill="none" stroke={CLR_RED} strokeWidth="0.8" opacity={0.5} />
+            <text x={cx} y={y + 13.5} textAnchor="middle" fill={CLR_RED} fontSize="14" fontWeight="600" fontFamily="Inter, system-ui, sans-serif">
               {label}
             </text>
           </g>
@@ -892,7 +892,7 @@ export default function ArchitectureFlowDiagram() {
     return () => cancelAnimationFrame(frame);
   }, [secured]);
 
-  const svgHeight = secured ? 420 : 400;
+  const svgHeight = secured ? 400 : 400;
 
   const th = {
     appBg:          darkMode ? "#0D0E12"  : "#F0F4F8",
