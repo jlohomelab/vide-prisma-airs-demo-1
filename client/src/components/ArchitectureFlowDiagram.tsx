@@ -1,6 +1,7 @@
 import { type JSX, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import ChatPanel from "./ChatPanel";
 import AdminPage from "./AdminPage";
+import JsonTree from "./JsonTree";
 import { ThemeContext, useTheme } from "../contexts/ThemeContext";
 
 // ---------------------------------------------------------------------------
@@ -1149,12 +1150,7 @@ export default function ArchitectureFlowDiagram() {
           {/* Body */}
           <div className="flex-1 overflow-y-auto p-3 min-h-0">
             {rawResponse ? (
-              <pre
-                className="text-[11px] font-mono leading-relaxed whitespace-pre-wrap break-all"
-                style={{ color: rp.text }}
-              >
-                {JSON.stringify(rawResponse, null, 2)}
-              </pre>
+              <JsonTree data={rawResponse} darkMode={darkMode} />
             ) : (
               <div className="flex h-full items-center justify-center">
                 <p className="text-xs text-center select-none" style={{ color: rp.muted }}>
