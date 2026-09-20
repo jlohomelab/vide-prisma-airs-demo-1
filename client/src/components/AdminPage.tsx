@@ -261,6 +261,7 @@ export default function AdminPage({ onScmReportUrl }: {
   const [editTitle, setEditTitle] = useState("");
   const [editContent, setEditContent] = useState("");
   const [dirty, setDirty] = useState(false);
+  const [configSaved, setConfigSaved] = useState(false);
   const [showNewFolder, setShowNewFolder] = useState(false);
   const [newFolderName, setNewFolderName] = useState("");
   const [newFileForFolder, setNewFileForFolder] = useState<string | null>(null);
@@ -335,6 +336,7 @@ export default function AdminPage({ onScmReportUrl }: {
   }
 
   function handleClose() {
+    if (configSaved) { window.location.reload(); return; }
     setOpen(false);
     setAuthed(false);
     setAdminToken("");
@@ -382,6 +384,7 @@ export default function AdminPage({ onScmReportUrl }: {
       await pushConfig(adminToken, draftConfig);
       onScmReportUrl?.(draftConfig.portkey.scmReportUrl || DEFAULT_SCM_URL);
       setSaveDone(true);
+      setConfigSaved(true);
     } catch (e) {
       setSaveError(e instanceof Error ? e.message : "Save failed");
     } finally {
