@@ -1146,7 +1146,7 @@ export default function ArchitectureFlowDiagram() {
                   className="text-[10px] px-2 py-0.5 rounded font-semibold transition-opacity hover:opacity-80"
                   style={{ background: CLR_BLUE + "22", color: CLR_BLUE, border: `1px solid ${CLR_BLUE}40` }}
                 >
-                  View Report ↗
+                  View Guardrails Report ↗
                 </a>
               )}
               {!!rawResponse && (
