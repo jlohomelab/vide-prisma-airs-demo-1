@@ -8,17 +8,21 @@ Interactive live demo with step-by-step SVG visualization of the Prisma AIRS AI 
 
 ### Architecture Diagram
 - **Two scenario modes** — compare unsecured vs. secured AI request paths side-by-side
-- **Step-by-step walkthrough** with auto-play, Previous/Next/Reset controls
+- **Step-by-step walkthrough** with auto-play, Previous/Next/Reset controls; all nodes start dimmed at step 0 and activate progressively
 - **Live node highlighting** — nodes and edges animate in sync with real chat events (typing, sending, receiving)
+- **Blocked request behaviour** — in secured mode, a blocked response immediately snaps the diagram to Step 3 (Security Guardrails)
 - **Animated SVG particles** flowing along data paths in real time
 - **Clickable nodes** that jump to relevant steps
+- **Attack simulation labels** — three ⚡ pill buttons (Prompt Injection, Sensitive Data Retrieval, Malicious URL in Response) appear below the Endpoint node when it is active; clicking one auto-fills and sends the corresponding attack scenario in the chat
 - **Risk & capability badges** highlighting security gaps and AIRS gateway features
 - **Light/dark mode** toggle (bottom-left)
+- **Language switcher** — cycles EN → 繁中 → 简中; persists to `localStorage["app-language"]` (bottom-left, next to theme toggle)
 
 ### AI Chatbot (RAG-backed, dual-mode)
 - **Right-side chat panel** that mirrors the active diagram mode:
   - **Secured mode** → routes through [Portkey AI gateway](https://portkey.ai) with AIRS inspection
   - **Unsecured mode** → calls the LLM directly with a Bearer token
+- **Credential gate** — chat input is disabled with a config prompt until LLM settings have been saved via the Admin Console (detected from `localStorage`)
 - **Retrieval-Augmented Generation** — answers are grounded in internal documents only; unrelated questions return `"Unable to access internal data."` without calling the LLM
 - **Block detection** — when the AIRS gateway blocks a request or response, the message bubble displays a specific reason derived from `hook_results` (e.g. "your query contains prompt injection context", "the response contains sensitive data"); falls back to a generic gateway-blocked message if no specific flag is matched
 - **Clear button** — header button clears the chat history; only visible when messages exist

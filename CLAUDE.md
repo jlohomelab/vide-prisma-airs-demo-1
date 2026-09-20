@@ -40,7 +40,7 @@ Build then serve: `npm run build && npm start`. The Express server (`server.mjs`
 
 ## Architecture
 
-Single-page React 19 + TypeScript app built with Vite 8. Tailwind CSS v4 via the `@tailwindcss/vite` plugin (imported as `@import "tailwindcss"` in `src/index.css` — no `tailwind.config` file). Global font scale: `html { font-size: 120% }` in `src/index.css`.
+Single-page React 19 + TypeScript app built with Vite 8. Tailwind CSS v4 via the `@tailwindcss/vite` plugin (imported as `@import "tailwindcss"` in `src/index.css` — no `tailwind.config` file). Global font scale: `html { font-size: 110% }` in `src/index.css`.
 
 ### Entry flow
 
@@ -55,7 +55,8 @@ Two-column flex-row layout:
   - Bottom 30%: API Response box — raw JSON from the last LLM/gateway call
 - **Fixed overlays** (`bottom-4`):
   - `left-4` — light/dark theme toggle button
-  - `left-16` — Admin Console button (rendered by `AdminPage`)
+  - `left-[70px]` — language switcher button (cycles EN → 繁中 → 简中)
+  - `left-30` — Admin Console button (rendered by `AdminPage`)
 
 ### Key components
 
@@ -69,9 +70,11 @@ Two-column flex-row layout:
 - **SVG animated particles** using `requestAnimationFrame` + `getPointAtLength`
 - **Contextual overlays** — risk callout badges (red) on the unsecured final step; gateway capability badges (blue) on the secured final step
 - **Conditional node colors** — nodes support an `activeColor` field that overrides `color` when active (unsecured LLM: white → red)
-- **Chat-phase live highlighting** — a `ChatPhase` state machine (`idle | typing | backend | processing | resp0–resp3 | endpoint`) overrides step-based node/edge highlighting in response to real chat events (focus, send, response received). Transitions are driven by callbacks from `ChatPanel` (`onInputFocus`, `onInputBlur`, `onSend`, `onResponse`).
+- **Chat-phase live highlighting** — a `ChatPhase` state machine (`idle | typing | backend | processing | resp0–resp3 | endpoint`) overrides step-based node/edge highlighting in response to real chat events (focus, send, response received). Transitions are driven by callbacks from `ChatPanel` (`onInputFocus`, `onInputBlur`, `onSend`, `onResponse`, `onBlocked`). When `onBlocked` fires in secured mode, the diagram immediately jumps to step 3 (guardrails) and `chatPhase` returns to `idle`.
+- **Attack simulation labels** — three clickable SVG pill labels (⚡ Prompt Injection, Sensitive Data Retrieval, Malicious URL in Response) appear below the Endpoint node whenever it is active. Clicking a label sets `pendingAttack` state and passes it to `ChatPanel` via `pendingMessage` prop, which calls `sendMessage(textOverride)` to auto-send the attack scenario immediately. Step 0 starts with all nodes inactive; labels first appear at step 1.
 - **API Response box** — displays the last LLM/gateway response as a collapsible syntax-highlighted JSON tree (`JsonTree` component); "View Report ↗" button appears when a `session_id` is found in `hook_results`; `scmUrlTemplate` is loaded from `/api/config` on mount (using the stored admin token) so it survives page reloads without re-saving config
 - **ThemeContext** — provides `darkMode: boolean` and `toggleTheme()` to all child components; node fills, borders, and text colors switch between dark and light
+- **LanguageContext** — provides `lang`, `setLang`, and `t(key, vars?)` to all child components; persists selection to `localStorage["app-language"]`; defaults to `"en"`
 
 All node positions, edge connections, step metadata, and color palette are defined as constants at the top of this file — no external data files.
 
@@ -108,12 +111,14 @@ All node positions, edge connections, step metadata, and color palette are defin
   - `secured=true` → `POST {baseUrl}/chat/completions` with `x-portkey-api-key` / `x-portkey-provider` headers
   - `secured=false` → `POST {baseUrl}` with `Authorization: Bearer {token}`
 - **LLM config** loaded from `GET /api/config` on mount using the stored admin token from `localStorage["chat-admin-password"]`
+- **Credential gate** — when no admin token is stored in `localStorage`, the chat area shows a ⚙ prompt to configure LLM settings, and the textarea + send button are disabled
 - **RAG gate**: calls `loadRagDocs()` + `searchDocs()` on every send; returns `"Unable to access internal data."` if no match without calling the LLM
 - **Clear button** — header button (visible only when messages exist) clears the chat history
 - **Block detection**: parses `hook_results.before_request_hooks[].checks[].data.prompt_detected` and `after_request_hooks[].checks[].data.response_detected` for specific flags (`dlp`, `agent`, `injection`, `malicious_code`, `topic_violation`, `toxic_content`, `url_cats`); displays a flag-specific violation message. Falls back to a generic gateway-blocked message if no flag is matched
-- **Event callbacks**: `onInputFocus`, `onInputBlur`, `onSend`, `onResponse` — used by `ArchitectureFlowDiagram` to drive the chat-phase node highlighting
+- **Event callbacks**: `onInputFocus`, `onInputBlur`, `onSend`, `onResponse`, `onBlocked` — used by `ArchitectureFlowDiagram` to drive the chat-phase node highlighting; `onBlocked` fires instead of `onResponse` when a blocked response is detected
+- **Attack trigger**: accepts `pendingMessage` prop and `onMessageConsumed` callback; when `pendingMessage` is set, calls `sendMessage(textOverride)` immediately, bypassing input state
 
-**`client/src/components/AdminPage.tsx`** — Combined admin console. Renders a `fixed bottom-4 left-16` trigger button. It owns:
+**`client/src/components/AdminPage.tsx`** — Combined admin console. Renders a `fixed bottom-4 left-30` trigger button. It owns:
 
 - **Auto-authentication**: on open, checks `localStorage["chat-admin-password"]`; if found, skips the login form
 - **Login gate**: username + password form → `POST /api/login` → stores returned token in `localStorage["chat-admin-password"]`
@@ -129,6 +134,10 @@ All node positions, edge connections, step metadata, and color palette are defin
 **`client/src/components/RagAdmin.tsx`** — Legacy standalone admin panel. Superseded by `AdminPage` and no longer rendered; kept in the codebase but unused.
 
 **`client/src/contexts/ThemeContext.tsx`** — React context for light/dark mode. Provides `{ darkMode: boolean, toggleTheme: () => void }`. Components call `useTheme()` to read the current mode and apply themed colors.
+
+**`client/src/contexts/LanguageContext.tsx`** — React context for i18n. Provides `{ lang, setLang, t(key, vars?) }`. Persists to `localStorage["app-language"]`; supports `"en"`, `"zh-TW"`, `"zh-CN"`. The `t()` helper does `{var}` template substitution. `LANG_LABELS` maps codes to display labels (Eng / 繁中 / 简中).
+
+**`client/src/i18n/translations.ts`** — All user-visible strings for all three languages (82+ keys). Typed with `satisfies Record<string, string>` so TypeScript enforces all languages share the same key set. Key namespaces: `diagram.*`, `step.*`, `risk.*`, `badge.*`, `chat.*`, `violation.*`, `admin.*`, `error.*`, `json.*`, `attack.*`.
 
 ### RAG utilities
 
